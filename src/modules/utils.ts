@@ -182,3 +182,7 @@ export async function awaitTransaction(txHash: MaybeHexString, tries?: number, c
 		}
 	}
 }
+
+export const printJSON = (x: any) => {
+    console.debug(JSON.stringify(x, null, 3));
+}

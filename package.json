@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "start:test": "ts-node -P src/modules/mint-machine/tsconfig.json src/modules/mint-machine/test.ts"
   },
   "dependencies": {
     "@aptos-labs/wallet-adapter-react": "^1.3.1",
@@ -16,7 +17,6 @@
     "@pontem/wallet-adapter-plugin": "^0.2.0",
     "@rise-wallet/wallet-adapter": "^0.1.2",
     "@solana/web3.js": "^1.78.0",
-    "@thalalabs/surf": "^0.0.12",
     "@trustwallet/aptos-wallet-adapter": "^0.1.6",
     "@types/node": "20.4.2",
     "@types/react": "18.2.15",
@@ -34,10 +34,12 @@
     "react-dom": "18.2.0",
     "react-modal": "^3.16.1",
     "styled-components": "^6.0.4",
-    "typescript": "5.1.6",
+    "typescript": "^5.1.6",
     "zustand": "^4.3.9"
   },
   "devDependencies": {
-    "@types/react-modal": "^3.16.0"
+    "@types/react-modal": "^3.16.0",
+    "dotenv": "^16.3.1",
+    "ts-node": "^10.9.1"
   }
 }
