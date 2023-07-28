@@ -1559,6 +1559,11 @@
   dependencies:
     tslib "^2.4.0"
 
+"@thalalabs/surf@^0.0.12":
+  version "0.0.12"
+  resolved "https://registry.yarnpkg.com/@thalalabs/surf/-/surf-0.0.12.tgz#9da0c477014c8deba90a6794515644349ad95876"
+  integrity sha512-WQ9HUiiGYzitWJZqzXqYkOsaasTAfivT7aEhmZGRruFkPYMuIr5AxTffGQlFBepiCiogQzT6/6+WQXLpvDIq1w==
+
 "@trustwallet/aptos-wallet-adapter@^0.1.6":
   version "0.1.6"
   resolved "https://registry.yarnpkg.com/@trustwallet/aptos-wallet-adapter/-/aptos-wallet-adapter-0.1.6.tgz#cbe16bb01fd9f6d75f286a0b3f584f692affe50f"

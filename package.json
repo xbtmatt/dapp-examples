@@ -16,6 +16,7 @@
     "@pontem/wallet-adapter-plugin": "^0.2.0",
     "@rise-wallet/wallet-adapter": "^0.1.2",
     "@solana/web3.js": "^1.78.0",
+    "@thalalabs/surf": "^0.0.12",
     "@trustwallet/aptos-wallet-adapter": "^0.1.6",
     "@types/node": "20.4.2",
     "@types/react": "18.2.15",
