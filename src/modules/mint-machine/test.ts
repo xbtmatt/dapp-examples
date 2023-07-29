@@ -1,6 +1,7 @@
 import { HexString, Provider, Network, TxnBuilderTypes, AptosAccount, BCS } from 'aptos';
 import { addMetadata, addMetadataRaw, enableMinting, initializeMintMachine, mint, toVectorVectorU8, upsertTier, viewBcsValues, viewCreatorObject, viewMintConfiguration } from './mint-machine';
 import { printJSON } from '../utils';
+import { PropertyType,  add,  addKey,  createTypedArray,  serializePropertyValue, serializeVectors, verifyPropertyMaps, verifySimplePropertyMap } from './pmap-utils';
 
 const COLLECTION_DESCRIPTION = "Your collection description here!";
 const TOKEN_DESCRIPTION = "Your token description here!";
@@ -55,6 +56,158 @@ export const defaultInitMintMachine = async(
     const provider = new Provider(Network.DEVNET);
     const account = new AptosAccount(pk.toUint8Array());
 
+    const nested1 = [[[1], [2], [3]], [[1], [2], [3]]];
+    const nested2 = [[['11', 'ab'], ['22'], ['33']], [['44'], ['55'], ['66']]];
+    
+    const nestedPolymorphic = ["1", 1, true, 123, "This is a sentence!", true, false, false, 255, 511, 1023, 2047];
+    const nestedPolymorphicTypes = [PropertyType.STRING, PropertyType.U8, PropertyType.BOOL, PropertyType.U64,
+        PropertyType.STRING, PropertyType.BOOL, PropertyType.BOOL, PropertyType.BOOL, PropertyType.U8, PropertyType.U16, PropertyType.U32, PropertyType.U64];
+
+    //console.debug(HexString.fromUint8Array(serializeVectors(nestedPolymorphic, nestedPolymorphicTypes)));
+
+
+    console.debug(
+        await add(
+            provider,
+            account,
+            ["1a", "2a", "3a",],
+            ["1b", "2b", "3b",],
+            PropertyType.STRING,
+        )
+    );
+
+    console.debug(
+        await addKey(
+            provider,
+            account,
+            "1c",
+            "1d",
+            PropertyType.STRING,
+        )
+    );
+
+
+
+
+
+    return
+
+    var testArray: Array<any> = ["1", "2", "3"];
+    console.debug(BCS.serializeVectorWithFunc(testArray, 'serializeStr'))
+    console.debug(serializeVectors(testArray, createTypedArray(testArray, PropertyType.STRING)))
+    console.debug('------------------------------------------')
+
+    console.debug(BCS.bcsSerializeStr("123"))
+    testArray = [[49], [50], [51]];
+    console.debug(BCS.serializeVectorWithFunc(testArray, 'serializeU8'))
+    console.debug(serializeVectors(testArray, createTypedArray(testArray, PropertyType.U8)))
+    console.debug('------------------------------------------')
+    
+    testArray = [true, true, true];
+    console.debug(BCS.serializeVectorWithFunc(testArray, 'serializeBool'))
+    console.debug(serializeVectors(testArray, createTypedArray(testArray, PropertyType.BOOL)))
+    console.debug('------------------------------------------')
+    
+    testArray = [10, 15, 20];
+    console.debug(BCS.serializeVectorWithFunc(testArray, 'serializeU64'))
+    console.debug(serializeVectors(testArray, createTypedArray(testArray, PropertyType.U64)))
+    console.debug('------------------------------------------')
+    
+    console.debug(BCS.serializeVectorWithFunc([true, true, true], 'serializeBool'))
+
+    // console.debug(HexString.fromUint8Array(serializeVectors(nested1, createTypedArray(nested1, PropertyType.U8))));
+    // console.debug(HexString.fromUint8Array(serializeVectors(nested2, createTypedArray(nested2, PropertyType.STRING))));
+    //console.debug(HexString.fromUint8Array(serializeVectors(['1a', '2a', '3a'], PropertyType.STRING)));
+    //console.debug(HexString.fromUint8Array(serializeVectors([100, 155, 255], PropertyType.U64)));
+    //console.debug(HexString.fromUint8Array(serializePropertyValue('1a', PropertyType.STRING)));
+    //console.debug(HexString.fromUint8Array(serializeVectors(['1a', '2a', '3a'], PropertyType.STRING)));
+    //console.debug(HexString.fromUint8Array(serializeVectors([100, 155, 255], PropertyType.U64)));
+    // console.debug(HexString.fromUint8Array(BCS.serializeVectorWithFunc(['1a', '2a', '3a'], 'serializeStr')));
+    console.debug('------------------------------------------')
+    // console.debug(BCS.serializeVectorWithFunc([true, true, true], 'serializeBool'));
+    // console.debug(BCS.serializeVectorWithFunc([1, 2, 3], 'serializeUint64'));
+
+    const pmapSimple = await verifySimplePropertyMap(
+        provider,
+        account,
+        [],
+        [],
+        [],
+    );
+
+    // const pmapSimple = await verifySimplePropertyMap(
+    //     provider,
+    //     account,
+    //     ["1", "2", "3"],
+    //     [true, true, true,],
+    //     [PropertyType.BOOL, PropertyType.BOOL, PropertyType.BOOL],
+    // );
+
+    console.debug(pmapSimple);
+
+    // const pmapResponse = await verifyPropertyMaps(
+    //     provider,
+    //     account,
+    //     [
+    //         ["1", "2", "3"],
+    //     ],
+    //     [
+    //         [true, true, true,],
+    //     ],
+    //     [
+    //         [PropertyType.BOOL, PropertyType.BOOL, PropertyType.BOOL],
+    //     ],
+    // );
+
+
+    // const pmapResponse = await verifyPropertyMaps(
+    //     provider,
+    //     account,
+    //     [
+    //         ["1a", "2a", "3a"],
+    //         ["1b", "2b", "3b"],
+    //         ["1c", "2c", "3c"],
+    //     ],
+    //     [
+    //         ["1", 1, true],
+    //         ["2", 2, false],
+    //         ["3", 3, true],
+    //     ],
+    //     [
+    //         [PropertyType.STRING, PropertyType.U8, PropertyType.BOOL],
+    //         [PropertyType.STRING, PropertyType.U16, PropertyType.BOOL],
+    //         [PropertyType.STRING, PropertyType.U32, PropertyType.BOOL],
+    //     ],
+    // );
+
+
+    // const pmapResponse = await verifyPropertyMaps(
+    //     provider,
+    //     account,
+    //     [
+    //         ["Key 1a", "Key 2a", "Key 3a", "Key 4a", "Key 5a"],
+    //         ["Key 1b", "Key 2b", "Key 3b", "Key 4b", "Key 5b"],
+    //         ["Key 1c", "Key 2c", "Key 3c", "Key 4c", "Key 5c", "Key 6c"],
+    //         ["Key 1d", "Key 2d", "Key 3d", "Key 4d", "Key 5d"],
+    //     ],
+    //     [
+    //         ["Value 1a", "Value 2a", "Value 3a", true, 7],
+    //         ["Value 2b", "Value 3b", "Value 4b", true, 7],
+    //         [1, 2, 3, 4, 5, 6],
+    //         [false, false, false, false, false],
+    //     ],
+    //     [
+    //         [PropertyType.STRING, PropertyType.STRING, PropertyType.STRING, PropertyType.BOOL, PropertyType.U64],
+    //         [PropertyType.STRING, PropertyType.STRING, PropertyType.STRING, PropertyType.BOOL, PropertyType.U64],
+    //         [PropertyType.U8, PropertyType.U16, PropertyType.U32, PropertyType.U64, PropertyType.U128, PropertyType.U256],
+    //         [PropertyType.BOOL, PropertyType.BOOL, PropertyType.BOOL, PropertyType.BOOL, PropertyType.BOOL],
+    //     ],
+    // );
+
+    // console.debug(pmapResponse);
+
+    return;
+
    //const initResponse = await defaultInitMintMachine(provider, account);
    const creatorObj = (await viewCreatorObject(provider, address));
    const mintConfiguration = await viewMintConfiguration(provider, creatorObj);
@@ -70,9 +223,7 @@ export const defaultInitMintMachine = async(
     Date.now(),
     10
 );
-const mintConfiguration2 = await viewMintConfiguration(provider, creatorObj);
-console.debug(mintConfiguration2);
-console.debug(whitelistRes);
+//const mintConfiguration2 = await viewMintConfiguration(provider, creatorObj);
     // printJSON({
     //     //initResponse,
     //     mintConfiguration,

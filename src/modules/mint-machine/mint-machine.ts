@@ -181,7 +181,7 @@ export const mint = async(
     return await submitPayloadHelper(provider, account, payload);
 }
 
-export const mint_multiple = async(
+export const mintMultiple = async(
     provider: Provider,
     account: AptosAccount,
     adminAddress: HexString,
@@ -190,7 +190,7 @@ export const mint_multiple = async(
     const payload = new TxnBuilderTypes.TransactionPayloadEntryFunction(
         TxnBuilderTypes.EntryFunction.natural(
             `${RESOURCE_ACCOUNT_ADDRESS}::mint_machine`,
-            'mint_multiple',
+            'mintMultiple',
             [],
             [
                 BCS.bcsToBytes(TxnBuilderTypes.AccountAddress.fromHex(adminAddress)),
