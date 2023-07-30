@@ -1,5 +1,8 @@
 import { HexString, Provider, Network, TxnBuilderTypes, AptosAccount, BCS, Types } from 'aptos';
 import { config } from 'dotenv';
+import { createTypedArray, PropertyType, PropertyValue, serializeVectors } from './pmap-utils';
+import { MoveResource } from 'aptos/src/generated';
+import { MoveValue } from '../types';
 config();
 
 export const RESOURCE_ACCOUNT_ADDRESS = process.env.NEXT_PUBLIC_RESOURCE_ACCOUNT_ADDRESS!;
@@ -65,6 +68,7 @@ export const initializeMintMachine = async(
     return await submitPayloadHelper(provider, account, payload);
 }
 
+/// Keep in mind that javascript's Date.now() is in milliseconds and the contract checks timestamp::now_seconds() in seconds.
 export const upsertTier = async(
     provider: Provider,
     account: AptosAccount,
@@ -94,54 +98,34 @@ export const upsertTier = async(
     return await submitPayloadHelper(provider, account, payload);
 }
 
-
-export const addMetadata = async(
+export const addTokens = async(
     provider: Provider,
     account: AptosAccount,
     uris: Array<string>,
     descriptions: Array<string>,
-    property_keys: Array<Array<string>>,
-    property_values: Array<Array<Uint8Array>>,
-    property_types: Array<Array<string>>,
+    propertyKeys: Array<Array<string>>,
+    propertyValues: Array<Array<PropertyValue>>,
+    propertyTypes: Array<Array<PropertyType>> | Array<PropertyType> | PropertyType,
+    safe: boolean = true,
 ): Promise<any> => {
+    // If types is a single PropertyType, auto populate an array of size propertyValues.length with the propertyType as every value
+    propertyTypes = Array.isArray(propertyTypes) ? propertyTypes : (createTypedArray(propertyValues, propertyTypes) as Array<any>);
+    // Ensure that the lengths of propertyValues and propertyTypes are the same.
+    if (propertyKeys.length !== propertyValues.length || propertyKeys.length !== propertyTypes.length) {
+        throw new Error("The lengths of propertyValues and propertyTypes must be the same");
+    }
+
     const payload = new TxnBuilderTypes.TransactionPayloadEntryFunction(
         TxnBuilderTypes.EntryFunction.natural(
             `${RESOURCE_ACCOUNT_ADDRESS}::mint_machine`,
-            'add_tokens',
+            `add_tokens${safe ? '_safe' : ''}`,
             [],
             [
-                BCS.serializeVectorWithFunc(uris, 'serializeStr'),
-                BCS.serializeVectorWithFunc(descriptions, 'serializeStr'),
-                BCS.serializeVectorWithFunc(property_keys.map(k => BCS.serializeVectorWithFunc(k, 'serializeStr')), 'serializeStr'),
-                BCS.serializeVectorWithFunc(property_values, 'serializeStr'),
-                BCS.serializeVectorWithFunc(property_types, 'serializeStr'),
-            ]
-        ),
-    );
-
-    return await submitPayloadHelper(provider, account, payload);
-}
-
-export const addMetadataRaw = async(
-    provider: Provider,
-    account: AptosAccount,
-    uris: Uint8Array,
-    descriptions: Uint8Array,
-    property_keys: Uint8Array,
-    property_values: Uint8Array,
-    property_types: Uint8Array,
-): Promise<any> => {
-    const payload = new TxnBuilderTypes.TransactionPayloadEntryFunction(
-        TxnBuilderTypes.EntryFunction.natural(
-            `${RESOURCE_ACCOUNT_ADDRESS}::mint_machine`,
-            'add_tokens',
-            [],
-            [
-                uris,
-                descriptions,
-                property_keys,
-                property_values,
-                property_types,
+                serializeVectors(uris, PropertyType.STRING),
+                serializeVectors(descriptions, PropertyType.STRING),
+                serializeVectors(propertyKeys, PropertyType.STRING),
+                serializeVectors(propertyValues, propertyTypes, true),
+                serializeVectors(propertyTypes, PropertyType.STRING),
             ]
         ),
     );
@@ -191,7 +175,7 @@ export const mintMultiple = async(
     const payload = new TxnBuilderTypes.TransactionPayloadEntryFunction(
         TxnBuilderTypes.EntryFunction.natural(
             `${RESOURCE_ACCOUNT_ADDRESS}::mint_machine`,
-            'mintMultiple',
+            'mint_multiple',
             [],
             [
                 BCS.bcsToBytes(TxnBuilderTypes.AccountAddress.fromHex(adminAddress)),
@@ -202,6 +186,8 @@ export const mintMultiple = async(
 
     return await submitPayloadHelper(provider, account, payload);
 }
+
+// Initialization of a mint machine in the happy path move test
 
 // mint_machine::upsert_tier(
 //     admin,
@@ -223,7 +209,6 @@ export const mintMultiple = async(
 // let minter_1_addr = signer::address_of(minter_1);
 // let whitelist_addr = mint_machine::get_creator_addr(admin_addr);
 // whitelist::assert_eligible_for_tier(whitelist_addr, minter_1_addr, str(b"public"));
-
 
 
 export function stringUtilsToCanonicalAddress(address: HexString): string {
@@ -256,33 +241,68 @@ export const constructTypeTag = (
 export const viewMintConfiguration = async(
     provider: Provider,
     address: HexString,
-): Promise<any> => {
+): Promise<MoveResource> => {
     return await provider.getAccountResource(
         address.toString(),
         constructTypeTag(RESOURCE_ACCOUNT_ADDRESS_HEXSTRING, 'mint_machine', 'MintConfiguration')
     );
 }
 
-export const viewBcsValues = async(
-    provider: Provider,
-    values: Array<String>,
-): Promise<Array<any>> => {
-    return await provider.view({
-        function: constructTypeTag(MIGRATION_TOOL_HELPER_ADDRESS_HEX, 'token_v1_utils', 'view_bcs_values'),
-        type_arguments: [],
-        arguments: [values],
-    });
+export type Eligibility = {
+    inTier: boolean,
+    hasAnyLeft: boolean,
+    notTooEarly: boolean,
+    notTooLate: boolean,
+    hasEnoughCoins: boolean,
 }
 
-
-
-export const toVectorVectorU8 = async(
+export const addressEligibleForTier = async(
     provider: Provider,
-    values: Array<string>,
-): Promise<Array<any>> => {
-    return await provider.view({
-        function: constructTypeTag(MIGRATION_TOOL_HELPER_ADDRESS_HEX, 'token_v1_utils', 'to_vector_vector_u8'),
+    creatorAddr: HexString,
+    accountAddr: HexString,
+    tierName: string,
+): Promise<Eligibility> => {
+    const res = await provider.view({
+        function: constructTypeTag(RESOURCE_ACCOUNT_ADDRESS_HEXSTRING, 'whitelist', 'address_eligible_for_tier'),
         type_arguments: [],
-        arguments: [values],
-    });
+        arguments: [creatorAddr.toString(), accountAddr.toString(), tierName],
+    }) as Array<any>;
+
+    console.debug(res);
+
+    return {
+        inTier: res[0],
+        hasAnyLeft: res[1],
+        notTooEarly: res[2],
+        notTooLate: res[3],
+        hasEnoughCoins: res[4],
+    }
+}
+
+export type TierInfo = {
+    openToPublic: boolean,
+    price: number,
+    startTime: number,
+    endTime: number,
+    perUserLimit: number,
+}
+
+export const whitelistTierInfo = async(
+    provider: Provider,
+    creatorAddr: HexString,
+    tierName: string,
+): Promise<TierInfo> => {
+    const res = await provider.view({
+        function: constructTypeTag(RESOURCE_ACCOUNT_ADDRESS_HEXSTRING, 'whitelist', 'tier_info'),
+        type_arguments: [],
+        arguments: [creatorAddr.toString(), tierName],
+    }) as Array<boolean | number>;
+
+    return {
+        openToPublic: res[0] as boolean,
+        price: res[1] as number,
+        startTime: res[2] as number,
+        endTime: res[3] as number,
+        perUserLimit: res[4] as number,
+    }
 }

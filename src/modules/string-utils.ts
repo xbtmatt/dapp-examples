@@ -1,6 +1,7 @@
 import { Types } from 'aptos';
 import prettyjson from 'prettyjson';
 import colors from 'colors';
+import { stringify } from 'querystring';
 
 export const prettify = (
     obj: any,
@@ -39,14 +40,22 @@ export const prettyPrint =(
     console.log(stringifyResponse(t, spacesPerIndent, colorize));   
 }
 
-export const prettyView =(
+export const stringifyView =(
     v: any,
     spacesPerIndent: number = 3,
     colorize: boolean = true,
-) => {
+): string => {
     if (colorize) {
         return prettify(v, spacesPerIndent);
     } else {
         return JSON.stringify(v, null, spacesPerIndent);
     }
+}
+
+export const prettyView = (
+    v: any,
+    spacesPerIndent: number = 3,
+    colorize: boolean = true,
+) => {
+    console.debug(stringifyView(v, spacesPerIndent, colorize));
 }
