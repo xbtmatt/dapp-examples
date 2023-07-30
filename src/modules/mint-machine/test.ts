@@ -33,7 +33,7 @@ import {
 } from './pmap-utils';
 import { prettyPrint, prettyView, stringifyResponse } from '../string-utils';
 import * as tokensJson from './tokens.json';
-import { Token } from './add-tokens';
+import { Token, processTokens } from './add-tokens';
 
 const COLLECTION_DESCRIPTION = "Your collection description here!";
 const TOKEN_DESCRIPTION = "Your token description here!";
@@ -88,7 +88,7 @@ export const defaultInitMintMachine = async (
     const provider = new Provider(Network.DEVNET);
     const account = new AptosAccount(pk.toUint8Array());
 
-    //prettyPrint(await defaultInitMintMachine(provider, account));
+    prettyPrint(await defaultInitMintMachine(provider, account));
     const creatorObject = await viewCreatorObject(provider, address);
     prettyView(await viewMintConfiguration(provider, creatorObject));
     // prettyView(await viewMintConfiguration(provider, creatorObject));
@@ -106,17 +106,17 @@ export const defaultInitMintMachine = async (
 
     const tokensDict = 'default' in tokensJson ? tokensJson.default as Record<string, Token> : tokensJson as Record<string, Token>;
 
-    // const r = await processTokens(
-    //     provider,
-    //     account,
-    //     10,
-    //     0,
-    //     tokensDict,
-    //     true,
-    // );
-    // r.forEach(v => prettyPrint(v));
+    const r = await processTokens(
+        provider,
+        account,
+        10,
+        0,
+        tokensDict,
+        true,
+    );
+    r.forEach(v => prettyPrint(v));
 
-    // prettyPrint(await enableMinting(provider, account));
+    prettyPrint(await enableMinting(provider, account));
 
     const whitelistTierInfoData = 
         await whitelistTierInfo(

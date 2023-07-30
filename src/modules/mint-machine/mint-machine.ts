@@ -118,7 +118,7 @@ export const addTokens = async(
     const payload = new TxnBuilderTypes.TransactionPayloadEntryFunction(
         TxnBuilderTypes.EntryFunction.natural(
             `${RESOURCE_ACCOUNT_ADDRESS}::mint_machine`,
-            `add_tokens${safe ? '_safe' : ''}`,
+            'add_tokens',
             [],
             [
                 serializeVectors(uris, PropertyType.STRING),
@@ -126,6 +126,7 @@ export const addTokens = async(
                 serializeVectors(propertyKeys, PropertyType.STRING),
                 serializeVectors(propertyValues, propertyTypes, true),
                 serializeVectors(propertyTypes, PropertyType.STRING),
+                BCS.bcsSerializeBool(safe),
             ]
         ),
     );
