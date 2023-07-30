@@ -1,7 +1,7 @@
 import { HexString, Provider, Network, TxnBuilderTypes, AptosAccount, BCS, Types } from 'aptos';
 import {
     RESOURCE_ACCOUNT_ADDRESS,
-    RESOURCE_ACCOUNT_ADDRESS_HEX,
+    RESOURCE_ACCOUNT_ADDRESS_HEXSTRING,
     MIGRATION_TOOL_HELPER_ADDRESS,
     MIGRATION_TOOL_HELPER_ADDRESS_HEX,
     submitPayloadHelper,
@@ -10,7 +10,7 @@ import {
     constructTypeTag
 } from './mint-machine';
 
-export type PropertyValue = boolean | number | string | Uint8Array;
+export type PropertyValue = boolean | number | string | Uint8Array | HexString;
 
 export enum PropertyType {
     BOOL = "bool",
@@ -83,7 +83,59 @@ export function toGeneralTypeTag(v: any): TxnBuilderTypes.TypeTag {
     }
 }
 
-export const add = async(
+export const viewInputTypes = async(provider: Provider): Promise<Array<any>> => {
+    return await provider.view({
+        function: constructTypeTag(RESOURCE_ACCOUNT_ADDRESS_HEXSTRING, 'property_map_utils', 'view_input_types'),
+        type_arguments: [
+            "bool",
+            "u8",
+            "u16",
+            "u32",
+            "u64",
+            "u128",
+            "u256",
+            "address",
+            "vector<u8>",
+            "0x1::string::String",
+        ],
+        arguments: [],
+    });
+}
+
+export const viewAllTypes = async(provider: Provider): Promise<Array<any>> => {
+    return await provider.view({
+        function: constructTypeTag(RESOURCE_ACCOUNT_ADDRESS_HEXSTRING, 'property_map_utils', 'view_all_types'),
+        type_arguments: [],
+        arguments: [],
+    });
+}
+
+export const readStringFromKey = async(
+    provider: Provider,
+    objAddr: HexString,
+    key: string,
+): Promise<any> => {
+    return await provider.view({
+        function: constructTypeTag(RESOURCE_ACCOUNT_ADDRESS_HEXSTRING, 'property_map_utils', 'read_string_property_map_key'),
+        type_arguments: [],
+        arguments: [objAddr.toString(), key],
+    });
+}
+
+export const readPropertyMapKey = async(
+    provider: Provider,
+    objAddr: HexString,
+    key: string,
+    type: string,
+): Promise<any> => {
+    return await provider.view({
+        function: constructTypeTag(RESOURCE_ACCOUNT_ADDRESS_HEXSTRING, 'property_map_utils', 'read_property_map_key'),
+        type_arguments: [type],
+        arguments: [objAddr.toString(), key],
+    });
+}
+
+export const addKeys = async(
     provider: Provider,
     account: AptosAccount,
     keys: Array<string>,
@@ -101,8 +153,34 @@ export const add = async(
             'add',
             [toTypeTag(type)],
             [
-                serializeVectors(keys, createTypedArray(keys, type)),
-                serializeVectors(values, createTypedArray(values, type)),
+                serializeVectors(keys, PropertyType.STRING),
+                serializeVectors(values, type),
+            ]
+        ),
+    );
+
+    return await submitPayloadHelper(provider, account, payload);
+}
+
+export const tryManyBcsSerialization = async(
+    provider: Provider,
+    account: AptosAccount,
+    keys: Array<string>,
+    values: Array<PropertyValue>,
+    types: Array<PropertyType> | PropertyType
+): Promise<any> => {
+    // If types is a single PropertyType, auto populate an array of size propertyValues.length with the propertyType as every value
+    types = Array.isArray(types) ? types : createTypedArray(values, types);
+
+    const payload = new TxnBuilderTypes.TransactionPayloadEntryFunction(
+        TxnBuilderTypes.EntryFunction.natural(
+            `${RESOURCE_ACCOUNT_ADDRESS}::property_map_utils`,
+            'try_many_bcs_serialization',
+            [],
+            [
+                serializeVectors(keys, PropertyType.STRING),
+                serializeVectors(values, types, true),
+                serializeVectors(types, PropertyType.STRING),
             ]
         ),
     );
@@ -117,14 +195,44 @@ export const addKey = async(
     value: PropertyValue,
     type: PropertyType
 ): Promise<any> => {
+    console.debug(HexString.fromUint8Array(serializePropertyValue(type, PropertyType.STRING)));
+    console.debug(HexString.fromUint8Array(serializePropertyValue(value, type)));
+    console.debug(HexString.fromUint8Array(serializePropertyValue(value, type)));
     const payload = new TxnBuilderTypes.TransactionPayloadEntryFunction(
         TxnBuilderTypes.EntryFunction.natural(
             `${RESOURCE_ACCOUNT_ADDRESS}::property_map_utils`,
             'add_key',
             [toTypeTag(type)],
             [
-                serializePropertyValue(key, type),
+                serializePropertyValue(key, PropertyType.STRING),
                 serializePropertyValue(value, type),
+            ]
+        ),
+    );
+
+    return await submitPayloadHelper(provider, account, payload);
+}
+
+
+export const tryBcsSerialization = async(
+    provider: Provider,
+    account: AptosAccount,
+    key: string,
+    value: PropertyValue,
+    type: PropertyType
+): Promise<any> => {
+    console.debug(HexString.fromUint8Array(serializePropertyValue(type, PropertyType.STRING)));
+    console.debug(HexString.fromUint8Array(serializePropertyValue(value, type)));
+    console.debug(HexString.fromUint8Array(serializePropertyValue(value, type)));
+    const payload = new TxnBuilderTypes.TransactionPayloadEntryFunction(
+        TxnBuilderTypes.EntryFunction.natural(
+            `${RESOURCE_ACCOUNT_ADDRESS}::property_map_utils`,
+            'try_bcs_serialization',
+            [],
+            [
+                serializePropertyValue(key, PropertyType.STRING),
+                serializePropertyValue(value, type, true), // requires specialized double serialization
+                serializePropertyValue(type, PropertyType.STRING),
             ]
         ),
     );
@@ -137,20 +245,14 @@ export const verifySimplePropertyMap = async(
     account: AptosAccount,
     propertyKeys: Array<string>,
     propertyValues: Array<PropertyValue>,
-    propertyTypes: Array<PropertyType>,
+    propertyTypes: Array<PropertyType> | PropertyType
 ): Promise<any> => {
+    // If types is a single PropertyType, auto populate an array of size propertyValues.length with the propertyType as every value
+    propertyTypes = Array.isArray(propertyTypes) ? propertyTypes : createTypedArray(propertyValues, propertyTypes);
     // Ensure that the lengths of propertyValues and propertyTypes are the same.
     if (propertyKeys.length !== propertyValues.length || propertyKeys.length !== propertyTypes.length) {
         throw new Error("The lengths of propertyValues and propertyTypes must be the same");
     }
-
-    console.debug('--------------------------------     pairsKeys        --------------------------------');
-    console.debug(HexString.fromUint8Array(serializeVectors(propertyKeys, createTypedArray(propertyTypes, PropertyType.STRING))))
-    console.debug('--------------------------------     pairsValues      --------------------------------');
-    console.debug(HexString.fromUint8Array(serializeVectors(propertyValues, propertyTypes)))
-    console.debug(serializeVectors(propertyValues, propertyTypes))
-    console.debug('--------------------------------     pairsTypes       --------------------------------');
-    console.debug(HexString.fromUint8Array(serializeVectors(propertyTypes, createTypedArray(propertyTypes, PropertyType.STRING))))
 
     const payload = new TxnBuilderTypes.TransactionPayloadEntryFunction(
         TxnBuilderTypes.EntryFunction.natural(
@@ -158,9 +260,9 @@ export const verifySimplePropertyMap = async(
             'verify_valid_property_map',
             [],
             [
-                BCS.serializeVectorWithFunc(propertyKeys, 'serializeStr'),
-                serializeVectors(propertyValues, propertyTypes),
-                serializeVectors(propertyTypes, createTypedArray(propertyTypes, PropertyType.STRING)),
+                serializeVectors(propertyKeys, PropertyType.STRING),
+                serializeVectors(propertyValues, propertyTypes, true),
+                serializeVectors(propertyTypes, PropertyType.STRING),
             ]
         ),
     );
@@ -173,20 +275,14 @@ export const verifyPropertyMaps = async(
     account: AptosAccount,
     propertyKeys: Array<Array<string>>,
     propertyValues: Array<Array<PropertyValue>>,
-    propertyTypes: Array<Array<PropertyType>>,
+    propertyTypes: Array<Array<PropertyType>> | Array<PropertyType> | PropertyType,
 ): Promise<any> => {
+    propertyTypes = Array.isArray(propertyTypes) ? propertyTypes : createTypedArray(propertyValues, propertyTypes);
+    propertyTypes = Array.isArray(propertyTypes[0]) ? propertyTypes : createTypedArray(propertyValues, propertyTypes[0]);
     // Ensure that the lengths of propertyValues and propertyTypes are the same.
     if (propertyKeys.length !== propertyValues.length || propertyKeys.length !== propertyTypes.length) {
         throw new Error("The lengths of propertyValues and propertyTypes must be the same");
     }
-
-    console.debug('--------------------------------     pairsKeys        --------------------------------');
-    console.debug(HexString.fromUint8Array(serializeVectors(propertyKeys, createTypedArray(propertyTypes, PropertyType.STRING))))
-    console.debug('--------------------------------     pairsValues      --------------------------------');
-    console.debug(HexString.fromUint8Array(serializeVectors(propertyValues, propertyTypes)))
-    console.debug(serializeVectors(propertyValues, propertyTypes))
-    console.debug('--------------------------------     pairsTypes       --------------------------------');
-    console.debug(HexString.fromUint8Array(serializeVectors(propertyTypes, createTypedArray(propertyTypes, PropertyType.STRING))))
 
     const payload = new TxnBuilderTypes.TransactionPayloadEntryFunction(
         TxnBuilderTypes.EntryFunction.natural(
@@ -195,7 +291,7 @@ export const verifyPropertyMaps = async(
             [],
             [
                 serializeVectors(propertyKeys, createTypedArray(propertyTypes, PropertyType.STRING)),
-                serializeVectors(propertyValues, propertyTypes),
+                serializeVectors(propertyValues, propertyTypes, true),
                 serializeVectors(propertyTypes, createTypedArray(propertyTypes, PropertyType.STRING)),
             ]
         ),
@@ -204,71 +300,74 @@ export const verifyPropertyMaps = async(
     return await submitPayloadHelper(provider, account, payload);
 }
 
-export function serializePropertyValue(v: PropertyValue, propertyType: PropertyType): Uint8Array {
+export function serializePropertyValue(v: PropertyValue, propertyType: PropertyType, doubleSerialize: boolean = false): Uint8Array {
     switch(propertyType) {
         case PropertyType.BOOL:
             if (typeof v !== 'boolean') { throw new Error('The given value\'s type does not match the propertyType.') }
             //console.debug(v, PropertyType.BOOL, HexString.fromUint8Array(BCS.bcsSerializeBool(v)));
-            return BCS.bcsSerializeBool(v);
+            return doubleSerialize ? BCS.bcsSerializeBytes(BCS.bcsSerializeBool(v)) : BCS.bcsSerializeBool(v);
         case PropertyType.U8:
             if (typeof v !== 'number') { throw new Error('The given value\'s type does not match the propertyType.') }
             //console.debug(v, PropertyType.U8, HexString.fromUint8Array(BCS.bcsSerializeU8(v)));
-            return BCS.bcsSerializeU8(v);
+            return doubleSerialize ? BCS.bcsSerializeBytes(BCS.bcsSerializeU8(v)) : BCS.bcsSerializeU8(v);
         case PropertyType.U16:
             if (typeof v !== 'number') { throw new Error('The given value\'s type does not match the propertyType.') }
             //console.debug(v, PropertyType.U16, HexString.fromUint8Array(BCS.bcsSerializeU16(v)));
-            return BCS.bcsSerializeU16(v);
+            return doubleSerialize ? BCS.bcsSerializeBytes(BCS.bcsSerializeU16(v)) : BCS.bcsSerializeU16(v);
         case PropertyType.U32:
             if (typeof v !== 'number') { throw new Error('The given value\'s type does not match the propertyType.') }
             //console.debug(v, PropertyType.U32, HexString.fromUint8Array(BCS.bcsSerializeU32(v)));
-            return BCS.bcsSerializeU32(v);
+            return doubleSerialize ? BCS.bcsSerializeBytes(BCS.bcsSerializeU32(v)) : BCS.bcsSerializeU32(v);
         case PropertyType.U64:
             if (typeof v !== 'number') { throw new Error('The given value\'s type does not match the propertyType.') }
             //console.debug(v, PropertyType.U64, HexString.fromUint8Array(BCS.bcsSerializeUint64(v)));
-            return BCS.bcsSerializeUint64(v);
+            return doubleSerialize ? BCS.bcsSerializeBytes(BCS.bcsSerializeUint64(v)) : BCS.bcsSerializeUint64(v);
         case PropertyType.U128:
             if (typeof v !== 'number') { throw new Error('The given value\'s type does not match the propertyType.') }
             //console.debug(v, PropertyType.U128, HexString.fromUint8Array(BCS.bcsSerializeU128(v)));
-            return BCS.bcsSerializeU128(v);
+            return doubleSerialize ? BCS.bcsSerializeBytes(BCS.bcsSerializeU128(v)) : BCS.bcsSerializeU128(v);
         case PropertyType.U256:
             if (typeof v !== 'number') { throw new Error('The given value\'s type does not match the propertyType.') }
             //console.debug(v, PropertyType.U256, HexString.fromUint8Array(BCS.bcsSerializeU256(v)));
-            return BCS.bcsSerializeU256(v);
+            return doubleSerialize ? BCS.bcsSerializeBytes(BCS.bcsSerializeU256(v)) : BCS.bcsSerializeU256(v);
         case PropertyType.ADDRESS:
             if (!(v instanceof HexString)) { throw new Error('The given value\'s type does not match the propertyType.') }
             //console.debug(v, PropertyType.ADDRESS, HexString.fromUint8Array(BCS.bcsToBytes(TxnBuilderTypes.AccountAddress.fromHex(v))));
-            return BCS.bcsToBytes(TxnBuilderTypes.AccountAddress.fromHex(v));
+            return doubleSerialize ? BCS.bcsSerializeBytes(BCS.bcsToBytes(TxnBuilderTypes.AccountAddress.fromHex(v))) : BCS.bcsToBytes(TxnBuilderTypes.AccountAddress.fromHex(v));
         case PropertyType.BYTE_VECTOR:
             if (!(v instanceof Uint8Array)) { throw new Error('The given value\'s type does not match the propertyType.') }
             //console.debug(v, PropertyType.BYTE_VECTOR, HexString.fromUint8Array(BCS.bcsSerializeBytes(v)));
-            return BCS.bcsSerializeBytes(v);
+            return doubleSerialize ? BCS.bcsSerializeBytes(BCS.bcsSerializeBytes(v)) : BCS.bcsSerializeBytes(v);
         case PropertyType.STRING:
             if (typeof v !== 'string') { throw new Error('The given value\'s type does not match the propertyType.') }
             //onsole.debug('--------------------------------     test       --------------------------------');
             //console.debug(BCS.bcsSerializeStr(v))
             //console.debug(v, PropertyType.STRING, HexString.fromUint8Array(BCS.bcsSerializeStr(v)));
-            return BCS.bcsSerializeStr(v);
+            return doubleSerialize ? BCS.bcsSerializeBytes(BCS.bcsSerializeStr(v)) : BCS.bcsSerializeStr(v);
         default:
             throw new Error(`Unsupported property type: ${propertyType}`);
     }
 }
 
-export function serializeVectors(value: Array<any>, propertyTypes: Array<any>): Uint8Array {
+export function serializeVectors(values: Array<any>, propertyTypes: Array<any> | any, doubleSerialize: boolean = false): Uint8Array {
+    // If there is only one type provided, we assume we can apply this type to all elements in the array
+    propertyTypes = Array.isArray(propertyTypes) ? propertyTypes : createTypedArray(values, propertyTypes);
+
     // If we encounter an array, we need to recursively serialize each element.
-    if (Array.isArray(value)) {
-        const serializedElements: Uint8Array[] = value.map((v, i) =>
-            Array.isArray(v) ? serializeVectors(v, propertyTypes[i]) : serializePropertyValue(v, propertyTypes[i])
+    if (Array.isArray(values)) {
+        const serializedElements: Uint8Array[] = values.map((v, i) =>
+            Array.isArray(v) ? serializeVectors(v, propertyTypes[i], doubleSerialize) : serializePropertyValue(v, propertyTypes[i], doubleSerialize)
         );
 
         // Combine the serialized elements into a single Uint8Array.
         const combinedElements = concatUint8Arrays(serializedElements);
 
         // Prepend the length of the original array (number of elements) to the start.
-        const lengthPrefix = new Uint8Array([value.length]);
+        const lengthPrefix = new Uint8Array([values.length]);
 
         return concatUint8Arrays([lengthPrefix, combinedElements]);
     } else {
-        throw new Error("The `value` should be an array");
+        throw new Error("The `values` should be an array");
     }
 }
 

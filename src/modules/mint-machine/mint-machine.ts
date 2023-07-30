@@ -3,7 +3,7 @@ import { config } from 'dotenv';
 config();
 
 export const RESOURCE_ACCOUNT_ADDRESS = process.env.NEXT_PUBLIC_RESOURCE_ACCOUNT_ADDRESS!;
-export const RESOURCE_ACCOUNT_ADDRESS_HEX = new HexString(RESOURCE_ACCOUNT_ADDRESS);
+export const RESOURCE_ACCOUNT_ADDRESS_HEXSTRING = new HexString(RESOURCE_ACCOUNT_ADDRESS);
 export const MIGRATION_TOOL_HELPER_ADDRESS = process.env.NEXT_PUBLIC_MIGRATION_TOOL_HELPER_ADDRESS!;
 export const MIGRATION_TOOL_HELPER_ADDRESS_HEX = new HexString(MIGRATION_TOOL_HELPER_ADDRESS);
 
@@ -12,8 +12,9 @@ export const submitPayloadHelper = async(
     account: AptosAccount,
     payload: TxnBuilderTypes.TransactionPayload,
 ): Promise<any> => {
-    return await provider.waitForTransactionWithResult(await provider.generateSignSubmitTransaction(account, payload));
+    return await provider.waitForTransactionWithResult(await provider.generateSignSubmitTransaction(account, payload)) as Types.UserTransaction;
 }
+
 
 export const initializeMintMachine = async(
     provider: Provider,
@@ -238,7 +239,7 @@ export const viewCreatorObject = async(
     address: HexString,
 ): Promise<HexString> => {
     return new HexString((await provider.view({
-        function: constructTypeTag(RESOURCE_ACCOUNT_ADDRESS_HEX, 'package_manager', 'get_named_address'),
+        function: constructTypeTag(RESOURCE_ACCOUNT_ADDRESS_HEXSTRING, 'package_manager', 'get_named_address'),
         type_arguments: [],
         arguments: [stringUtilsToCanonicalAddress(address)],
     }))[0].toString());
@@ -258,7 +259,7 @@ export const viewMintConfiguration = async(
 ): Promise<any> => {
     return await provider.getAccountResource(
         address.toString(),
-        constructTypeTag(RESOURCE_ACCOUNT_ADDRESS_HEX, 'mint_machine', 'MintConfiguration')
+        constructTypeTag(RESOURCE_ACCOUNT_ADDRESS_HEXSTRING, 'mint_machine', 'MintConfiguration')
     );
 }
 
