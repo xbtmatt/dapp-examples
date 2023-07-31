@@ -55,7 +55,7 @@ const WalletChoice = styled(motion.div)`
 	//place-content: left;
 	border-radius: 7px;
 	margin: 7px;
-	box-shadow: var(--sexy-shadows);
+	box-shadow: var(--nice-shadows);
 
 	&:hover {
 		cursor: pointer;

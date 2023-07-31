@@ -6,7 +6,9 @@ import WalletModal from '../../wallet/WalletModal';
 import { Wallet, useWallet } from "@aptos-labs/wallet-adapter-react";
 import { disconnect } from 'process';
 
-interface ButtonProps extends React.HTMLAttributes<HTMLDivElement> {
+interface EntryFunctionButtonProps extends React.HTMLAttributes<HTMLDivElement> {
+	handleClick: (e: any) => void,
+	buttonText: string,
 }
 
 export const Button = styled(motion.div)`
@@ -40,7 +42,7 @@ export const Button = styled(motion.div)`
 	}
 `;
 
-export const ConnectButton = (props: ButtonProps) => {
+export const EntryFunctionButton = (props: EntryFunctionButtonProps) => {
 	const { connected, disconnect, wallets } = useWallet();
 	const [walletModalOpen, setWalletModalOpen] = useState<boolean>(false);
 
@@ -51,7 +53,7 @@ export const ConnectButton = (props: ButtonProps) => {
 		if (!connected) {
 			handleOpenWalletModal();
 		} else {
-			disconnect();
+			props.handleClick(e);
 		}
 	}, [connected, handleOpenWalletModal]);
 
@@ -65,7 +67,7 @@ export const ConnectButton = (props: ButtonProps) => {
 				}}
 				onMouseUp={(e) => { if (e.button === 0) handleClick(e); }}
 			>
-				{connected ? "Disconnect" : "Connect"}
+				{props.buttonText}
 			</Button>
 			{
 				(wallets ?? new Array<Wallet>).length > 0 &&
@@ -80,4 +82,4 @@ export const ConnectButton = (props: ButtonProps) => {
 	);
 }
 
-export default ConnectButton;
+export default EntryFunctionButton;
