@@ -9,23 +9,7 @@ import {
     viewCreatorObject,
     constructTypeTag
 } from './mint-machine';
-
-export type PropertyValue = boolean | number | string | Uint8Array | HexString;
-
-export enum PropertyType {
-    BOOL = "bool",
-    U8 = "u8",
-    U16 = "u16",
-    U32 = "u32",
-    U64 = "u64",
-    U128 = "u128",
-    U256 = "u256",
-    ADDRESS = "address",
-    BYTE_VECTOR = "vector<u8>",
-    STRING = "0x1::string::String"
-}
-
-
+import { PropertyType, PropertyValue } from './add-tokens';
 
 export function toTypeTag(propertyType: PropertyType): TxnBuilderTypes.TypeTag {
     switch(propertyType) {
@@ -51,20 +35,6 @@ export function toTypeTag(propertyType: PropertyType): TxnBuilderTypes.TypeTag {
             return new TxnBuilderTypes.TypeTagStruct(TxnBuilderTypes.StructTag.fromString('0x1::string::String'));
         default:
             throw new Error(`Unsupported property type: ${propertyType}`);
-    }
-}
-
-export function toGeneralTypeTag(v: any): TxnBuilderTypes.TypeTag {
-    if (typeof v === 'boolean') {
-        return new TxnBuilderTypes.TypeTagBool();
-    } else if (typeof v === 'number') {
-        return new TxnBuilderTypes.TypeTagU64();
-    } else if (typeof v === 'string') {
-        return new TxnBuilderTypes.TypeTagAddress();
-    } else if (v instanceof Uint8Array) {
-        return new TxnBuilderTypes.TypeTagVector(new TxnBuilderTypes.TypeTagU8());
-    } else {
-        throw new Error(`Unknown type: ${v}`);
     }
 }
 

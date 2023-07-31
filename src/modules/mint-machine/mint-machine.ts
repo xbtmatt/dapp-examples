@@ -1,8 +1,11 @@
 import { HexString, Provider, Network, TxnBuilderTypes, AptosAccount, BCS, Types } from 'aptos';
 import { config } from 'dotenv';
-import { createTypedArray, PropertyType, PropertyValue, serializeVectors } from './pmap-utils';
+import { createTypedArray, serializeVectors } from './pmap-utils';
 import { MoveResource } from 'aptos/src/generated';
 import { MoveValue } from '../types';
+import { MintConfiguration } from './types';
+import { prettyPrint, prettyView } from '../string-utils';
+import { PropertyType, PropertyValue } from './add-tokens';
 config();
 
 export const RESOURCE_ACCOUNT_ADDRESS = process.env.NEXT_PUBLIC_RESOURCE_ACCOUNT_ADDRESS!;
@@ -14,14 +17,13 @@ export const submitPayloadHelper = async(
     provider: Provider,
     account: AptosAccount,
     payload: TxnBuilderTypes.TransactionPayload,
-): Promise<any> => {
+): Promise<Types.UserTransaction> => {
     return await provider.waitForTransactionWithResult(await provider.generateSignSubmitTransaction(account, payload)) as Types.UserTransaction;
 }
 
-
 export const initializeMintMachine = async(
     provider: Provider,
-    account: AptosAccount,
+    admin: AptosAccount,
     description: string,
     maxSupply: number,
     name: string,
@@ -38,7 +40,7 @@ export const initializeMintMachine = async(
     royaltyNumerator: number,
     royaltyDenominator: number,
     tokenBaseName: string,
-): Promise<any> => {
+): Promise<Types.UserTransaction> => {
     const payload = new TxnBuilderTypes.TransactionPayloadEntryFunction(
         TxnBuilderTypes.EntryFunction.natural(
             `${RESOURCE_ACCOUNT_ADDRESS}::mint_machine`,
@@ -65,20 +67,20 @@ export const initializeMintMachine = async(
         ),
     );
 
-    return await submitPayloadHelper(provider, account, payload);
+    return await submitPayloadHelper(provider, admin, payload);
 }
 
 /// Keep in mind that javascript's Date.now() is in milliseconds and the contract checks timestamp::now_seconds() in seconds.
 export const upsertTier = async(
     provider: Provider,
-    account: AptosAccount,
+    admin: AptosAccount,
     tierName: string,
     openToPublic: boolean,
     price: number,
     startTimestamp: number,
     endTimestamp: number,
     perUserLimit: number,
-): Promise<any> => {
+): Promise<Types.UserTransaction> => {
     const payload = new TxnBuilderTypes.TransactionPayloadEntryFunction(
         TxnBuilderTypes.EntryFunction.natural(
             `${RESOURCE_ACCOUNT_ADDRESS}::mint_machine`,
@@ -95,19 +97,19 @@ export const upsertTier = async(
         ),
     );
 
-    return await submitPayloadHelper(provider, account, payload);
+    return await submitPayloadHelper(provider, admin, payload);
 }
 
 export const addTokens = async(
     provider: Provider,
-    account: AptosAccount,
+    admin: AptosAccount,
     uris: Array<string>,
     descriptions: Array<string>,
     propertyKeys: Array<Array<string>>,
     propertyValues: Array<Array<PropertyValue>>,
     propertyTypes: Array<Array<PropertyType>> | Array<PropertyType> | PropertyType,
     safe: boolean = true,
-): Promise<any> => {
+): Promise<Types.UserTransaction> => {
     // If types is a single PropertyType, auto populate an array of size propertyValues.length with the propertyType as every value
     propertyTypes = Array.isArray(propertyTypes) ? propertyTypes : (createTypedArray(propertyValues, propertyTypes) as Array<any>);
     // Ensure that the lengths of propertyValues and propertyTypes are the same.
@@ -131,13 +133,13 @@ export const addTokens = async(
         ),
     );
 
-    return await submitPayloadHelper(provider, account, payload);
+    return await submitPayloadHelper(provider, admin, payload);
 }
 
 export const enableMinting = async(
     provider: Provider,
-    account: AptosAccount,
-): Promise<any> => {
+    admin: AptosAccount,
+): Promise<Types.UserTransaction> => {
     const payload = new TxnBuilderTypes.TransactionPayloadEntryFunction(
         TxnBuilderTypes.EntryFunction.natural(
             `${RESOURCE_ACCOUNT_ADDRESS}::mint_machine`,
@@ -147,14 +149,14 @@ export const enableMinting = async(
         ),
     );
 
-    return await submitPayloadHelper(provider, account, payload);
+    return await submitPayloadHelper(provider, admin, payload);
 }
 
 export const mint = async(
     provider: Provider,
-    account: AptosAccount,
+    minter: AptosAccount,
     adminAddress: HexString,
-): Promise<any> => {
+): Promise<Types.UserTransaction> => {
     const payload = new TxnBuilderTypes.TransactionPayloadEntryFunction(
         TxnBuilderTypes.EntryFunction.natural(
             `${RESOURCE_ACCOUNT_ADDRESS}::mint_machine`,
@@ -164,15 +166,15 @@ export const mint = async(
         ),
     );
 
-    return await submitPayloadHelper(provider, account, payload);
+    return await submitPayloadHelper(provider, minter, payload);
 }
 
 export const mintMultiple = async(
     provider: Provider,
-    account: AptosAccount,
+    minter: AptosAccount,
     adminAddress: HexString,
     amount: number,
-): Promise<any> => {
+): Promise<Types.UserTransaction> => {
     const payload = new TxnBuilderTypes.TransactionPayloadEntryFunction(
         TxnBuilderTypes.EntryFunction.natural(
             `${RESOURCE_ACCOUNT_ADDRESS}::mint_machine`,
@@ -185,7 +187,7 @@ export const mintMultiple = async(
         ),
     );
 
-    return await submitPayloadHelper(provider, account, payload);
+    return await submitPayloadHelper(provider, minter, payload);
 }
 
 // Initialization of a mint machine in the happy path move test
@@ -220,14 +222,29 @@ export function stringUtilsToCanonicalAddress(address: HexString): string {
     return hex;
 }
 
+export const getTokensAddedByAdmin = async(
+    provider: Provider,
+    adminAddress: HexString,
+): Promise<number> => {
+    try {
+        const creatorObjectAddress = await viewCreatorObject(provider, adminAddress);
+        const mintMachineConfiguration = await viewMintConfiguration(provider, creatorObjectAddress);
+        return Number(mintMachineConfiguration.metadata_table.size);
+    } catch (e) {
+        console.log(e); // TODO: Add error handling that checks if the creator object doesn't exist vs some other error
+    }
+
+    return -1;
+}
+
 export const viewCreatorObject = async(
     provider: Provider,
-    address: HexString,
+    adminAddress: HexString,
 ): Promise<HexString> => {
     return new HexString((await provider.view({
         function: constructTypeTag(RESOURCE_ACCOUNT_ADDRESS_HEXSTRING, 'package_manager', 'get_named_address'),
         type_arguments: [],
-        arguments: [stringUtilsToCanonicalAddress(address)],
+        arguments: [stringUtilsToCanonicalAddress(adminAddress)],
     }))[0].toString());
 }
 
@@ -239,14 +256,18 @@ export const constructTypeTag = (
     return `${accountAddress.toString()}::${moduleName}::${functionNameOrType}`
 }
 
+// "0x3a97c07858472f01a2303a2ee4b83d3ec1183c3cd7d50da858acd5263b51d725::mint_machine::MintConfiguration"
+// The address specified should be the object/creator address, not the admin address.
 export const viewMintConfiguration = async(
     provider: Provider,
-    address: HexString,
-): Promise<MoveResource> => {
-    return await provider.getAccountResource(
-        address.toString(),
+    creatorObjectAddress: HexString,
+): Promise<MintConfiguration> => {
+    const mintConfigurationResource = (await provider.getAccountResource(
+        creatorObjectAddress.toString(),
         constructTypeTag(RESOURCE_ACCOUNT_ADDRESS_HEXSTRING, 'mint_machine', 'MintConfiguration')
-    );
+    )).data as MintConfiguration;
+
+    return mintConfigurationResource;
 }
 
 export type Eligibility = {
@@ -269,7 +290,7 @@ export const addressEligibleForTier = async(
         arguments: [creatorAddr.toString(), accountAddr.toString(), tierName],
     }) as Array<any>;
 
-    console.debug(res);
+    console.log(res);
 
     return {
         inTier: res[0],
@@ -288,7 +309,7 @@ export type TierInfo = {
     perUserLimit: number,
 }
 
-export const whitelistTierInfo = async(
+export const viewWhitelistTierInfo = async(
     provider: Provider,
     creatorAddr: HexString,
     tierName: string,
@@ -300,10 +321,55 @@ export const whitelistTierInfo = async(
     }) as Array<boolean | number>;
 
     return {
-        openToPublic: res[0] as boolean,
-        price: res[1] as number,
-        startTime: res[2] as number,
-        endTime: res[3] as number,
-        perUserLimit: res[4] as number,
+        openToPublic: Boolean(res[0]),
+        price: Number(res[1]),
+        startTime: Number(res[2]),
+        endTime: Number(res[3]),
+        perUserLimit: Number(res[4]),
     }
+}
+
+export type ReadyForLaunch = {
+    mintConfigExists: boolean,
+    whitelistExists: boolean,
+    hasValidTier: boolean,
+    collectionExists: boolean,
+    metadataComplete: boolean,
+};
+
+export const viewReadyForLaunch = async(
+    provider: Provider,
+    adminAddr: HexString,
+): Promise<ReadyForLaunch> => {
+    const res = (await provider.view({
+        function: constructTypeTag(RESOURCE_ACCOUNT_ADDRESS_HEXSTRING, 'mint_machine', 'ready_for_launch'),
+        type_arguments: [],
+        arguments: [adminAddr.toString()],
+    }))[0] as any;
+    return {
+        mintConfigExists: Boolean(res.mint_config_exists),
+        whitelistExists: Boolean(res.whitelist_exists),
+        hasValidTier: Boolean(res.has_valid_tier),
+        collectionExists: Boolean(res.collection_exists),
+        metadataComplete: Boolean(res.metadata_complete),
+    }
+}
+
+export const mintAndViewTokens = async (
+    provider: Provider,
+    minterAccount: AptosAccount,
+    amount: number,
+) => {
+    prettyPrint(await mintMultiple(
+        provider,
+        minterAccount,
+        minterAccount.address(),
+        amount,
+    ));
+
+    prettyView(
+        await provider.indexerClient.getOwnedTokens(
+            minterAccount.address(),
+        )
+    )
 }

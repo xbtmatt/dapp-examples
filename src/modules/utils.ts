@@ -99,7 +99,7 @@ export const truncateAddress = (address: HexString) => {
 	try {
 		s = address.toString();
 	} catch (e) {
-		console.debug('error at line 8 in utils.ts');
+		console.log('error at line 8 in utils.ts');
 	}
 	return `${s!.substring(0, 6) + ' ... ' + s!.substring(s!.length - 4, s!.length)}`;
 }
@@ -131,7 +131,7 @@ export async function getBalance(address: string | HexString, aptosClient: Aptos
 			return Promise.resolve(Number(resource.data['coin']['value']) / (process.env.NEXT_PUBLIC_APTOS_COIN_FACTOR ? parseInt(process.env.NEXT_PUBLIC_APTOS_COIN_FACTOR) : 100000000));
 		} catch (e) {
 			console.error(e);
-			console.debug('Most likely you haven\'t initialized a CoinStore struct in your account. Airdrop coins or receive some from someone.');
+			console.log('Most likely you haven\'t initialized a CoinStore struct in your account. Airdrop coins or receive some from someone.');
 			return -1;
 		}
 	}
@@ -169,20 +169,20 @@ export async function awaitTransaction(txHash: MaybeHexString, tries?: number, c
 		if (response.type === "pending_transaction" || response.error_code === 'transaction_not_found') {
 			count += 1;
 			if (count >= (tries ?? 10)) {
-				console.debug('unable to confirm tx');
+				console.log('unable to confirm tx');
 				return response;
 			}
 			await sleep(1000);
 			continue;
 		} else {
-			console.debug(txHash.toString());
-			//console.debug(response);
-			//console.debug(response.type);
+			console.log(txHash.toString());
+			//console.log(response);
+			//console.log(response.type);
 			return response;
 		}
 	}
 }
 
 export const printJSON = (x: any) => {
-    console.debug(JSON.stringify(x, null, 3));
+    console.log(JSON.stringify(x, null, 3));
 }

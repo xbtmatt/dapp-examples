@@ -24,7 +24,7 @@ export const stringifyResponse = (
     colorize: boolean = true,
 ): string => {
     const { hash, sender, success, payload, events, vm_status } = t;
-    const obj =  {hash, sender, success, payload, events, vm_status };
+    const obj = { hash, sender, success, payload, events, vm_status };
     if (colorize) {
         return prettify(obj, spacesPerIndent);
     } else {
@@ -32,15 +32,15 @@ export const stringifyResponse = (
     }
 }
 
-export const prettyPrint =(
+export const prettyPrint = (
     t: Types.UserTransaction,
     spacesPerIndent: number = 3,
     colorize: boolean = true,
 ) => {
-    console.log(stringifyResponse(t, spacesPerIndent, colorize));   
+    console.log(stringifyResponse(t, spacesPerIndent, colorize));
 }
 
-export const stringifyView =(
+export const stringifyView = (
     v: any,
     spacesPerIndent: number = 3,
     colorize: boolean = true,
@@ -57,5 +57,5 @@ export const prettyView = (
     spacesPerIndent: number = 3,
     colorize: boolean = true,
 ) => {
-    console.debug(stringifyView(v, spacesPerIndent, colorize));
+    console.log(stringifyView(v, spacesPerIndent, colorize));
 }
