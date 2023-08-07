@@ -1,5 +1,5 @@
 import { AptosAccount, HexString, Provider, TxnBuilderTypes } from 'aptos';
-import { addTokens, getTokensAddedByAdmin, viewCreatorObject, viewMintConfiguration } from './mint-machine';
+import { addTokens, viewCreatorObject, viewMintConfiguration } from './mint-machine';
 import TokensJSON from './json/tokens.json';
 import TokensAddedJSON from './json/tokens-added.json';
 import fs from 'fs';
@@ -182,9 +182,7 @@ export async function addTokensAndWriteToFile(
 
         // Call addTokens with the chunks
         try {
-            const result = await addTokens({
-                    provider: provider, 
-                    admin: adminAccount, 
+            const result = await addTokens(provider, adminAccount, {
                     uris: urisChunk, 
                     descriptions: descriptionsChunk, 
                     propertyKeys: propertyKeysChunk, 

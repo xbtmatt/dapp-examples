@@ -6,6 +6,7 @@ import {
     constructTypeTag,
     enableMinting,
     initializeMintMachine,
+    initializeMintMachinePayload,
     mint,
     mintAndViewTokens,
     mintMultiple,
@@ -42,9 +43,7 @@ export const defaultInitMintMachine = async (
     provider: Provider,
     admin: AptosAccount,
 ): Promise<any> => {
-    return await initializeMintMachine({
-        provider: provider,
-        admin: admin,
+    return await initializeMintMachine(provider, admin, {
         description: COLLECTION_DESCRIPTION,
         maxSupply: MAX_SUPPLY,
         name: COLLECTION_NAME,
@@ -92,9 +91,7 @@ export const defaultInitMintMachine = async (
         false,
     );
 
-    await upsertTier({
-        provider: provider,
-        admin: account,
+    await upsertTier(provider, account, {
         tierName: "public",
         openToPublic: true,
         price: 1,
@@ -103,9 +100,7 @@ export const defaultInitMintMachine = async (
         perUserLimit: MAX_PUBLIC_MINTS_PER_USER
     });
 
-    await upsertTier({
-        provider: provider,
-        admin: account,
+    await upsertTier(provider, account, {
         tierName: "whitelist",
         openToPublic: true,
         price: 0,
@@ -131,14 +126,12 @@ export const defaultInitMintMachine = async (
         account.address(),
         "public",
     ));
-    prettyView(await enableMinting({provider, admin: account}));
+    prettyView(await enableMinting(provider, account));
     prettyView(await viewMintConfiguration(provider, creatorObject));
     prettyView(viewWhitelistTierInfoData);
 
     //mintAndViewTokens(provider, account, 250);
-    const { events, ...response } = (await mintMultiple({
-        provider: provider,
-        minter: account,
+    const { events, ...response } = (await mintMultiple(provider, account, {
         adminAddress: account.address(),
         amount: 10,
     }));
