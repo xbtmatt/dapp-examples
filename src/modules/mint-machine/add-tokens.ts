@@ -182,7 +182,16 @@ export async function addTokensAndWriteToFile(
 
         // Call addTokens with the chunks
         try {
-            const result = await addTokens(provider, adminAccount, urisChunk, descriptionsChunk, propertyKeysChunk, propertyValuesChunk, propertyTypesChunk, verifySerialization);
+            const result = await addTokens({
+                    provider: provider, 
+                    admin: adminAccount, 
+                    uris: urisChunk, 
+                    descriptions: descriptionsChunk, 
+                    propertyKeys: propertyKeysChunk, 
+                    propertyValues: propertyValuesChunk, 
+                    propertyTypes: propertyTypesChunk, 
+                    safe: verifySerialization
+                });
             
             const thisRecord: TokensAdded = {}
             // Try to write to file, if not, print it out so user can at least try to parse

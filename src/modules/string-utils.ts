@@ -6,13 +6,14 @@ import { stringify } from 'querystring';
 export const prettify = (
     obj: any,
     spacesPerIndent: number = 3,
+    noAlign: boolean = true
 ): string => {
     return colors.bold.grey('{\n') + prettyjson.render(obj, {
         keysColor: 'grey',
         dashColor: 'brightWhite',
         stringColor: 'green',
         numberColor: 'blue',
-        noAlign: true,
+        noAlign,
         defaultIndentation: spacesPerIndent,
         emptyArrayMsg: colors.bold.yellow('[]'),
     }) + colors.bold.grey('\n}');
@@ -38,6 +39,7 @@ export const prettyPrint = (
     colorize: boolean = true,
 ) => {
     console.log(stringifyResponse(t, spacesPerIndent, colorize));
+    console.log();
 }
 
 export const stringifyView = (
@@ -58,4 +60,5 @@ export const prettyView = (
     colorize: boolean = true,
 ) => {
     console.log(stringifyView(v, spacesPerIndent, colorize));
+    console.log();
 }

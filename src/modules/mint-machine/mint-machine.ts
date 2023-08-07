@@ -13,15 +13,20 @@ export const RESOURCE_ACCOUNT_ADDRESS_HEXSTRING = new HexString(RESOURCE_ACCOUNT
 export const MIGRATION_TOOL_HELPER_ADDRESS = process.env.NEXT_PUBLIC_MIGRATION_TOOL_HELPER_ADDRESS!;
 export const MIGRATION_TOOL_HELPER_ADDRESS_HEX = new HexString(MIGRATION_TOOL_HELPER_ADDRESS);
 
-export const submitPayloadHelper = async(
+export type SubmitPayloadHelperProps = {
     provider: Provider,
     account: AptosAccount,
     payload: TxnBuilderTypes.TransactionPayload,
-): Promise<Types.UserTransaction> => {
-    return await provider.waitForTransactionWithResult(await provider.generateSignSubmitTransaction(account, payload)) as Types.UserTransaction;
 }
 
-export const initializeMintMachine = async(
+export const submitPayloadHelper = async (props: SubmitPayloadHelperProps): Promise<Types.UserTransaction> => {
+    const txnHash = await props.provider.generateSignSubmitTransaction(props.account, props.payload);
+    return await props.provider.waitForTransactionWithResult(txnHash) as Types.UserTransaction;
+}
+
+///          get the Object => argument thing from your other branch
+
+export type InitializeMintMachineProps = {
     provider: Provider,
     admin: AptosAccount,
     description: string,
@@ -40,38 +45,43 @@ export const initializeMintMachine = async(
     royaltyNumerator: number,
     royaltyDenominator: number,
     tokenBaseName: string,
-): Promise<Types.UserTransaction> => {
+}
+
+export const initializeMintMachine = async (props: InitializeMintMachineProps): Promise<Types.UserTransaction> => {
     const payload = new TxnBuilderTypes.TransactionPayloadEntryFunction(
         TxnBuilderTypes.EntryFunction.natural(
             `${RESOURCE_ACCOUNT_ADDRESS}::mint_machine`,
             'initialize_mint_machine',
             [],
             [
-                BCS.bcsSerializeStr(description),
-                BCS.bcsSerializeUint64(maxSupply),
-                BCS.bcsSerializeStr(name),
-                BCS.bcsSerializeStr(uri),
-                BCS.bcsSerializeBool(mutableDescription),
-                BCS.bcsSerializeBool(mutableRoyalty),
-                BCS.bcsSerializeBool(mutableUri),
-                BCS.bcsSerializeBool(mutableTokenDescription),
-                BCS.bcsSerializeBool(mutableTokenName),
-                BCS.bcsSerializeBool(mutableTokenProperties),
-                BCS.bcsSerializeBool(mutableTokenUri),
-                BCS.bcsSerializeBool(tokensBurnableByCreator),
-                BCS.bcsSerializeBool(tokensFreezableByCreator),
-                BCS.bcsSerializeUint64(royaltyNumerator),
-                BCS.bcsSerializeUint64(royaltyDenominator),
-                BCS.bcsSerializeStr(tokenBaseName),
+                BCS.bcsSerializeStr(props.description),
+                BCS.bcsSerializeUint64(props.maxSupply),
+                BCS.bcsSerializeStr(props.name),
+                BCS.bcsSerializeStr(props.uri),
+                BCS.bcsSerializeBool(props.mutableDescription),
+                BCS.bcsSerializeBool(props.mutableRoyalty),
+                BCS.bcsSerializeBool(props.mutableUri),
+                BCS.bcsSerializeBool(props.mutableTokenDescription),
+                BCS.bcsSerializeBool(props.mutableTokenName),
+                BCS.bcsSerializeBool(props.mutableTokenProperties),
+                BCS.bcsSerializeBool(props.mutableTokenUri),
+                BCS.bcsSerializeBool(props.tokensBurnableByCreator),
+                BCS.bcsSerializeBool(props.tokensFreezableByCreator),
+                BCS.bcsSerializeUint64(props.royaltyNumerator),
+                BCS.bcsSerializeUint64(props.royaltyDenominator),
+                BCS.bcsSerializeStr(props.tokenBaseName),
             ]
         ),
     );
 
-    return await submitPayloadHelper(provider, admin, payload);
+    return await submitPayloadHelper({
+        provider: props.provider, 
+        account: props.admin, 
+        payload
+    });
 }
 
-/// Keep in mind that javascript's Date.now() is in milliseconds and the contract checks timestamp::now_seconds() in seconds.
-export const upsertTier = async(
+export type UpsetTierProps = {
     provider: Provider,
     admin: AptosAccount,
     tierName: string,
@@ -80,27 +90,34 @@ export const upsertTier = async(
     startTimestamp: number,
     endTimestamp: number,
     perUserLimit: number,
-): Promise<Types.UserTransaction> => {
+}
+
+/// Keep in mind that javascript's Date.now() is in milliseconds and the contract checks timestamp::now_seconds() in seconds.
+export const upsertTier = async (props: UpsetTierProps): Promise<Types.UserTransaction> => {
     const payload = new TxnBuilderTypes.TransactionPayloadEntryFunction(
         TxnBuilderTypes.EntryFunction.natural(
             `${RESOURCE_ACCOUNT_ADDRESS}::mint_machine`,
             'upsert_tier',
             [],
             [
-                BCS.bcsSerializeStr(tierName),
-                BCS.bcsSerializeBool(openToPublic),
-                BCS.bcsSerializeUint64(price),
-                BCS.bcsSerializeUint64(startTimestamp),
-                BCS.bcsSerializeUint64(endTimestamp),
-                BCS.bcsSerializeUint64(perUserLimit),
+                BCS.bcsSerializeStr(props.tierName),
+                BCS.bcsSerializeBool(props.openToPublic),
+                BCS.bcsSerializeUint64(props.price),
+                BCS.bcsSerializeUint64(props.startTimestamp),
+                BCS.bcsSerializeUint64(props.endTimestamp),
+                BCS.bcsSerializeUint64(props.perUserLimit),
             ]
         ),
     );
 
-    return await submitPayloadHelper(provider, admin, payload);
+    return await submitPayloadHelper({
+        provider: props.provider, 
+        account: props.admin, 
+        payload
+    });
 }
 
-export const addTokens = async(
+export type AddTokensProps = {
     provider: Provider,
     admin: AptosAccount,
     uris: Array<string>,
@@ -108,12 +125,14 @@ export const addTokens = async(
     propertyKeys: Array<Array<string>>,
     propertyValues: Array<Array<PropertyValue>>,
     propertyTypes: Array<Array<PropertyType>> | Array<PropertyType> | PropertyType,
-    safe: boolean = true,
-): Promise<Types.UserTransaction> => {
+    safe?: boolean,
+}
+
+export const addTokens = async (props: AddTokensProps): Promise<Types.UserTransaction> => {
     // If types is a single PropertyType, auto populate an array of size propertyValues.length with the propertyType as every value
-    propertyTypes = Array.isArray(propertyTypes) ? propertyTypes : (createTypedArray(propertyValues, propertyTypes) as Array<any>);
+    props.propertyTypes = Array.isArray(props.propertyTypes) ? props.propertyTypes : (createTypedArray(props.propertyValues, props.propertyTypes) as Array<any>);
     // Ensure that the lengths of propertyValues and propertyTypes are the same.
-    if (propertyKeys.length !== propertyValues.length || propertyKeys.length !== propertyTypes.length) {
+    if (props.propertyKeys.length !== props.propertyValues.length || props.propertyKeys.length !== props.propertyTypes.length) {
         throw new Error("The lengths of propertyValues and propertyTypes must be the same");
     }
 
@@ -123,23 +142,29 @@ export const addTokens = async(
             'add_tokens',
             [],
             [
-                serializeVectors(uris, PropertyType.STRING),
-                serializeVectors(descriptions, PropertyType.STRING),
-                serializeVectors(propertyKeys, PropertyType.STRING),
-                serializeVectors(propertyValues, propertyTypes, true),
-                serializeVectors(propertyTypes, PropertyType.STRING),
-                BCS.bcsSerializeBool(safe),
+                serializeVectors(props.uris, PropertyType.STRING),
+                serializeVectors(props.descriptions, PropertyType.STRING),
+                serializeVectors(props.propertyKeys, PropertyType.STRING),
+                serializeVectors(props.propertyValues, props.propertyTypes, true),
+                serializeVectors(props.propertyTypes, PropertyType.STRING),
+                BCS.bcsSerializeBool(props.safe ?? false),
             ]
         ),
     );
 
-    return await submitPayloadHelper(provider, admin, payload);
+    return await submitPayloadHelper({
+        provider: props.provider, 
+        account: props.admin, 
+        payload
+    });
 }
 
-export const enableMinting = async(
+export type EnableMintingProps = {
     provider: Provider,
     admin: AptosAccount,
-): Promise<Types.UserTransaction> => {
+}
+
+export const enableMinting = async (props: EnableMintingProps): Promise<Types.UserTransaction> => {
     const payload = new TxnBuilderTypes.TransactionPayloadEntryFunction(
         TxnBuilderTypes.EntryFunction.natural(
             `${RESOURCE_ACCOUNT_ADDRESS}::mint_machine`,
@@ -149,45 +174,61 @@ export const enableMinting = async(
         ),
     );
 
-    return await submitPayloadHelper(provider, admin, payload);
+    return await submitPayloadHelper({
+        provider: props.provider, 
+        account: props.admin, 
+        payload
+    });
 }
 
-export const mint = async(
+export type MintProps = {
     provider: Provider,
     minter: AptosAccount,
     adminAddress: HexString,
-): Promise<Types.UserTransaction> => {
+}
+
+export const mint = async (props: MintProps): Promise<Types.UserTransaction> => {
     const payload = new TxnBuilderTypes.TransactionPayloadEntryFunction(
         TxnBuilderTypes.EntryFunction.natural(
             `${RESOURCE_ACCOUNT_ADDRESS}::mint_machine`,
             'mint',
             [],
-            [BCS.bcsToBytes(TxnBuilderTypes.AccountAddress.fromHex(adminAddress))]
+            [BCS.bcsToBytes(TxnBuilderTypes.AccountAddress.fromHex(props.adminAddress))]
         ),
     );
 
-    return await submitPayloadHelper(provider, minter, payload);
+    return await submitPayloadHelper({
+        provider: props.provider, 
+        account: props.minter, 
+        payload
+    });
 }
 
-export const mintMultiple = async(
+export type MintMultipleProps = {
     provider: Provider,
     minter: AptosAccount,
     adminAddress: HexString,
     amount: number,
-): Promise<Types.UserTransaction> => {
+}
+
+export const mintMultiple = async (props: MintMultipleProps): Promise<Types.UserTransaction> => {
     const payload = new TxnBuilderTypes.TransactionPayloadEntryFunction(
         TxnBuilderTypes.EntryFunction.natural(
             `${RESOURCE_ACCOUNT_ADDRESS}::mint_machine`,
             'mint_multiple',
             [],
             [
-                BCS.bcsToBytes(TxnBuilderTypes.AccountAddress.fromHex(adminAddress)),
-                BCS.bcsSerializeUint64(amount),
+                BCS.bcsToBytes(TxnBuilderTypes.AccountAddress.fromHex(props.adminAddress)),
+                BCS.bcsSerializeUint64(props.amount),
             ]
         ),
     );
 
-    return await submitPayloadHelper(provider, minter, payload);
+    return await submitPayloadHelper({
+        provider: props.provider, 
+        account: props.minter, 
+        payload
+    });
 }
 
 // Initialization of a mint machine in the happy path move test
@@ -222,7 +263,7 @@ export function stringUtilsToCanonicalAddress(address: HexString): string {
     return hex;
 }
 
-export const getTokensAddedByAdmin = async(
+export const getTokensAddedByAdmin = async (
     provider: Provider,
     adminAddress: HexString,
 ): Promise<number> => {
@@ -237,7 +278,7 @@ export const getTokensAddedByAdmin = async(
     return -1;
 }
 
-export const viewCreatorObject = async(
+export const viewCreatorObject = async (
     provider: Provider,
     adminAddress: HexString,
 ): Promise<HexString> => {
@@ -258,7 +299,7 @@ export const constructTypeTag = (
 
 // "0x3a97c07858472f01a2303a2ee4b83d3ec1183c3cd7d50da858acd5263b51d725::mint_machine::MintConfiguration"
 // The address specified should be the object/creator address, not the admin address.
-export const viewMintConfiguration = async(
+export const viewMintConfiguration = async (
     provider: Provider,
     creatorObjectAddress: HexString,
 ): Promise<MintConfiguration> => {
@@ -278,7 +319,7 @@ export type Eligibility = {
     hasEnoughCoins: boolean,
 }
 
-export const addressEligibleForTier = async(
+export const addressEligibleForTier = async (
     provider: Provider,
     creatorAddr: HexString,
     accountAddr: HexString,
@@ -309,7 +350,7 @@ export type TierInfo = {
     perUserLimit: number,
 }
 
-export const viewWhitelistTierInfo = async(
+export const viewWhitelistTierInfo = async (
     provider: Provider,
     creatorAddr: HexString,
     tierName: string,
@@ -337,7 +378,7 @@ export type ReadyForLaunch = {
     metadataComplete: boolean,
 };
 
-export const viewReadyForLaunch = async(
+export const viewReadyForLaunch = async (
     provider: Provider,
     adminAddr: HexString,
 ): Promise<ReadyForLaunch> => {
@@ -357,19 +398,20 @@ export const viewReadyForLaunch = async(
 
 export const mintAndViewTokens = async (
     provider: Provider,
-    minterAccount: AptosAccount,
+    minter: AptosAccount,
+    adminAddress: HexString,
     amount: number,
 ) => {
-    prettyPrint(await mintMultiple(
+    prettyPrint(await mintMultiple({
         provider,
-        minterAccount,
-        minterAccount.address(),
+        minter,
+        adminAddress,
         amount,
-    ));
+    }));
 
     prettyView(
         await provider.indexerClient.getOwnedTokens(
-            minterAccount.address(),
+            minter.address(),
         )
     )
 }

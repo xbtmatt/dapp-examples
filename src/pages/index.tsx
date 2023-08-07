@@ -10,6 +10,7 @@ import { HexString, BCS, TxnBuilderTypes } from 'aptos'
 import OnRender from '@/components/utils/OnRender'
 import { publishPayloadWithPackageManager } from '@/modules/package-manager/publish-package'
 import EntryFunctionButton from '@/components/buttons/EntryFunctionButton'
+import MintMachineGuide from '@/components/mint-machine/Guide'
 
 const IndexPage: NextPage = () => {
     const {
@@ -33,6 +34,7 @@ const IndexPage: NextPage = () => {
                 buttonText="Publish Package"
                 handleClick={() => {}}
             ></EntryFunctionButton>
+            <MintMachineGuide />
         </OnRender>
     )
 }

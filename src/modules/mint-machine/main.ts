@@ -34,34 +34,34 @@ const TOKEN_BASE_URI = "https://arweave.net/";
 const COLLECTION_URI = "https://www.link-to-your-collection-image.com";
 const ROYALTY_NUMERATOR = 5;
 const ROYALTY_DENOMINATOR = 100;
-const MAX_SUPPLY = 500;
+const MAX_SUPPLY = 10;
 const MAX_WHITELIST_MINTS_PER_USER = 20;
 const MAX_PUBLIC_MINTS_PER_USER = 500;
 
 export const defaultInitMintMachine = async (
     provider: Provider,
-    account: AptosAccount,
+    admin: AptosAccount,
 ): Promise<any> => {
-    return await initializeMintMachine(
-        provider,
-        account,
-        COLLECTION_DESCRIPTION,
-        MAX_SUPPLY,
-        COLLECTION_NAME,
-        COLLECTION_URI,
-        MUTABLE_COLLECTION_DESCRIPTION,
-        MUTABLE_ROYALTY,
-        MUTABLE_URI,
-        MUTABLE_TOKEN_DESCRIPTION,
-        MUTABLE_TOKEN_NAME,
-        MUTABLE_TOKEN_PROPERTIES,
-        MUTABLE_TOKEN_URI,
-        TOKENS_BURNABLE_BY_CREATOR,
-        TOKENS_FREEZABLE_BY_CREATOR,
-        ROYALTY_NUMERATOR,
-        ROYALTY_DENOMINATOR,
-        TOKEN_BASE_NAME,
-    );
+    return await initializeMintMachine({
+        provider: provider,
+        admin: admin,
+        description: COLLECTION_DESCRIPTION,
+        maxSupply: MAX_SUPPLY,
+        name: COLLECTION_NAME,
+        uri: COLLECTION_URI,
+        mutableDescription: MUTABLE_COLLECTION_DESCRIPTION,
+        mutableRoyalty: MUTABLE_ROYALTY,
+        mutableUri: MUTABLE_URI,
+        mutableTokenDescription: MUTABLE_TOKEN_DESCRIPTION,
+        mutableTokenName: MUTABLE_TOKEN_NAME,
+        mutableTokenProperties: MUTABLE_TOKEN_PROPERTIES,
+        mutableTokenUri: MUTABLE_TOKEN_URI,
+        tokensBurnableByCreator: TOKENS_BURNABLE_BY_CREATOR,
+        tokensFreezableByCreator: TOKENS_FREEZABLE_BY_CREATOR,
+        royaltyNumerator: ROYALTY_NUMERATOR,
+        royaltyDenominator: ROYALTY_DENOMINATOR,
+        tokenBaseName: TOKEN_BASE_NAME,
+    });
 }
 
 (async () => {
@@ -78,7 +78,7 @@ export const defaultInitMintMachine = async (
     const provider = new Provider(Network.DEVNET);
     const faucetClient = new FaucetClient(provider.aptosClient.nodeUrl, `https://faucet.${Network.DEVNET}.aptoslabs.com`);
 
-    await faucetClient.fundAccount(address, 10000000000000);
+    await faucetClient.fundAccount(address, 100_000_000);
 
     await defaultInitMintMachine(provider, account);
     const creatorObject = await viewCreatorObject(provider, address);
@@ -92,27 +92,27 @@ export const defaultInitMintMachine = async (
         false,
     );
 
-    await upsertTier(
-        provider,
-        account,
-        "public",
-        true,
-        1,
-        Math.floor(Date.now() / 1000),
-        Math.floor(Date.now() / 1000) + 1000000,
-        MAX_PUBLIC_MINTS_PER_USER
-    );
+    await upsertTier({
+        provider: provider,
+        admin: account,
+        tierName: "public",
+        openToPublic: true,
+        price: 1,
+        startTimestamp: Math.floor(Date.now() / 1000),
+        endTimestamp: Math.floor(Date.now() / 1000) + 1000000,
+        perUserLimit: MAX_PUBLIC_MINTS_PER_USER
+    });
 
-    await upsertTier(
-        provider,
-        account,
-        "whitelist",
-        true,
-        0,
-        Math.floor(Date.now() / 1000),
-        Math.floor(Date.now() / 1000) + 1000000,
-        MAX_WHITELIST_MINTS_PER_USER
-    );
+    await upsertTier({
+        provider: provider,
+        admin: account,
+        tierName: "whitelist",
+        openToPublic: true,
+        price: 0,
+        startTimestamp: Math.floor(Date.now() / 1000),
+        endTimestamp: Math.floor(Date.now() / 1000) + 1000000,
+        perUserLimit: MAX_WHITELIST_MINTS_PER_USER
+    });
 
     prettyView(await viewReadyForLaunch(
         provider,
@@ -131,17 +131,17 @@ export const defaultInitMintMachine = async (
         account.address(),
         "public",
     ));
-    await enableMinting(provider, account);
-    // prettyView(await viewMintConfiguration(provider, creatorObject));
+    prettyView(await enableMinting({provider, admin: account}));
+    prettyView(await viewMintConfiguration(provider, creatorObject));
     prettyView(viewWhitelistTierInfoData);
 
     //mintAndViewTokens(provider, account, 250);
-    const { events, ...response } = (await mintMultiple(
-        provider,
-        account,
-        account.address(),
-        250,
-    ));
+    const { events, ...response } = (await mintMultiple({
+        provider: provider,
+        minter: account,
+        adminAddress: account.address(),
+        amount: 10,
+    }));
     prettyPrint({ events: [], ...response });
 
 })();
