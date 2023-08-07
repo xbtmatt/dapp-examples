@@ -1,13 +1,6 @@
 import { AptosAccount, HexString, Provider, TxnBuilderTypes } from 'aptos';
 import { addTokens, viewCreatorObject, viewMintConfiguration } from './mint-machine';
-import TokensJSON from './json/tokens.json';
-import TokensAddedJSON from './json/tokens-added.json';
-import fs from 'fs';
-import { join } from 'path';
 import { prettyView } from '../string-utils';
-
-const DIRNAME = __dirname;
-const TOKENS_ADDED_FILE_PATH = join(DIRNAME, 'json/tokens-added.json');
 
 export enum PropertyType {
     BOOL = "bool",
@@ -37,7 +30,7 @@ export type TokenPropertyMaps = {
     propertyTypes: PropertyType[][],
 }
 
-type ExampleToken = {
+export type ExampleToken = {
     "https://tokens.com/1": {
         "Description": string,
         "Helmet": 'Metal Helmet',
@@ -51,25 +44,14 @@ type ExampleToken = {
     }
 }
 
-type TokenUri = string;
-type AdminAddress = string;
+export type TokenUri = string;
+export type AdminAddress = string;
 
-type Response = {
+export type Response = {
     success: boolean,
     explorerUrl: string,
 }
 export type TokensAdded = Record<TokenUri, Response>;
-
-// cast to a dictionary (Record) and delete the default value that typescript sometimes imports
-const tokensToAdd = TokensJSON as Record<TokenUri, any>;
-if ('default' in tokensToAdd) {
-    delete tokensToAdd['default'];
-}
-
-const tokensAddedPerAdmin = TokensAddedJSON as Record<AdminAddress, TokensAdded>;
-if ('default' in tokensAddedPerAdmin) {
-    delete tokensAddedPerAdmin['default'];
-}
 
 // Function to divide an array into chunks
 function chunkArray<T>(array: T[], size: number): T[][] {
@@ -96,7 +78,9 @@ export async function addTokensInChunks(
     verifyTokensAdded: boolean = true,   // Verifies that the tokens recorded in `tokens-added.json` is equal to the number of tokens in the tokensToAdd
     verifyMaxSupply: boolean = true,     // Verifies that the max supply of the tokens.json file equals the max supply of the collection
     verifySerialization: boolean = true, // Validates that the propertyValues were correctly serialized, this increases the gas cost for each token added
-) {
+    tokensToAdd: Record<TokenUri, any>,
+    tokensAddedPerAdmin: Record<AdminAddress, TokensAdded>,
+): Promise<Record<string, TokensAdded>> {
     const adminAddress = adminAccount.address().toString();
     if (!(adminAddress in tokensAddedPerAdmin)) {
         tokensAddedPerAdmin[adminAddress] = {};
@@ -146,8 +130,15 @@ export async function addTokensInChunks(
 
     // Even if we don't verify tokens, we stop adding more when the max supply on chain has been reached by truncating chunkSize to supplyLeft
     const supplyLeft = maxSupply - numTokensAddedOnChain;
-    await addTokensAndWriteToFile(provider, adminAccount, chunkSize, tokenPropertyMaps, verifySerialization, TOKENS_ADDED_FILE_PATH, supplyLeft);
-
+    return await addTokensAndWriteToFile(
+        provider,
+        adminAccount,
+        chunkSize,
+        tokenPropertyMaps,
+        verifySerialization,
+        supplyLeft,
+        tokensAddedPerAdmin,
+    );
 }
 
 export async function addTokensAndWriteToFile(
@@ -156,9 +147,9 @@ export async function addTokensAndWriteToFile(
     chunkSize: number,
     tokenPropertyMaps: TokenPropertyMaps,
     verifySerialization: boolean,
-    filePath: string,
     supplyLeft: number,
-) {
+    tokensAddedPerAdmin: Record<AdminAddress, TokensAdded>,
+): Promise<Record<string, TokensAdded>> {
     const adminAddress = adminAccount.address().toString();
     let quitAfterNextChunk = false;
     // Split the arrays into sections of chunkSize
@@ -167,7 +158,7 @@ export async function addTokensAndWriteToFile(
             if (supplyLeft == 0) {
                 console.log(`[INFO]: Admin address: ${adminAddress}\n` + 
                             `[INFO]: Max supply reached, no more tokens to add.`)
-                return;
+                return tokensAddedPerAdmin;
             }
             console.log(`[INFO]: Admin address: ${adminAddress}\n` +
                         `[INFO]: Max supply exceeded, only adding ${supplyLeft} tokens.`)
@@ -212,7 +203,6 @@ export async function addTokensAndWriteToFile(
                     supplyLeft: supplyLeft,
                     explorerUrl,
                 });
-                fs.writeFileSync(filePath, JSON.stringify(tokensAddedPerAdmin, null, 3));
             } catch (e) {
                 console.log(thisRecord);
                 console.error(e);
@@ -221,6 +211,7 @@ export async function addTokensAndWriteToFile(
             console.error(e);
         }
     }
+    return tokensAddedPerAdmin;
 }
 
 type TokenPropertyMap = {

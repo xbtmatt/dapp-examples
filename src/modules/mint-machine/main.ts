@@ -17,57 +17,72 @@ import {
     viewWhitelistTierInfo
 } from './mint-machine';
 import { prettyPrint, prettyView } from '../string-utils';
-import { addTokensInChunks } from './add-tokens';
+import { AdminAddress, TokenUri, TokensAdded, addTokensInChunks } from './add-tokens';
+import fs from 'fs';
+import TokensJSON from './json/tokens.json';
+import TokensAddedJSON from './json/tokens-added.json';
+import { join } from 'path';
+import {
+    DEFAULT_COLLECTION_DESCRIPTION,
+    DEFAULT_MUTABLE_COLLECTION_DESCRIPTION,
+    DEFAULT_MUTABLE_ROYALTY,
+    DEFAULT_MUTABLE_URI,
+    DEFAULT_MUTABLE_TOKEN_DESCRIPTION,
+    DEFAULT_MUTABLE_TOKEN_NAME,
+    DEFAULT_MUTABLE_TOKEN_PROPERTIES,
+    DEFAULT_MUTABLE_TOKEN_URI,
+    DEFAULT_TOKENS_BURNABLE_BY_CREATOR,
+    DEFAULT_TOKENS_FREEZABLE_BY_CREATOR,
+    DEFAULT_COLLECTION_NAME,
+    DEFAULT_TOKEN_BASE_NAME,
+    DEFAULT_COLLECTION_URI,
+    DEFAULT_ROYALTY_NUMERATOR,
+    DEFAULT_ROYALTY_DENOMINATOR,
+    DEFAULT_MAX_SUPPLY,
+    DEFAULT_MAX_WHITELIST_MINTS_PER_USER,
+    DEFAULT_MAX_PUBLIC_MINTS_PER_USER,
+} from './mint-machine';
 
-const COLLECTION_DESCRIPTION = "Your collection description here!";
-const MUTABLE_COLLECTION_DESCRIPTION = false;
-const MUTABLE_ROYALTY = false;
-const MUTABLE_URI = false;
-const MUTABLE_TOKEN_DESCRIPTION = false;
-const MUTABLE_TOKEN_NAME = false;
-const MUTABLE_TOKEN_PROPERTIES = true;
-const MUTABLE_TOKEN_URI = false;
-const TOKENS_BURNABLE_BY_CREATOR = false;
-const TOKENS_FREEZABLE_BY_CREATOR = false;
-const COLLECTION_NAME = "Krazy Kangaroos";
-const TOKEN_BASE_NAME = "Krazy Kangaroo #";
-const TOKEN_BASE_URI = "https://arweave.net/";
-const COLLECTION_URI = "https://www.link-to-your-collection-image.com";
-const ROYALTY_NUMERATOR = 5;
-const ROYALTY_DENOMINATOR = 100;
-const MAX_SUPPLY = 10;
-const MAX_WHITELIST_MINTS_PER_USER = 20;
-const MAX_PUBLIC_MINTS_PER_USER = 500;
+const DIRNAME = __dirname;
+const TOKENS_ADDED_FILE_PATH = join(DIRNAME, 'json/tokens-added.json');
+
+
+// cast to a dictionary (Record) and delete the default value that typescript sometimes imports
+const TOKENS_TO_ADD = TokensJSON as Record<TokenUri, any>;
+if ('default' in TOKENS_TO_ADD) {
+    delete TOKENS_TO_ADD['default'];
+}
+
+const TOKENS_ADDED_PER_ADMIN = TokensAddedJSON as Record<AdminAddress, TokensAdded>;
+if ('default' in TOKENS_ADDED_PER_ADMIN) {
+    delete TOKENS_ADDED_PER_ADMIN['default'];
+}
 
 export const defaultInitMintMachine = async (
     provider: Provider,
     admin: AptosAccount,
 ): Promise<any> => {
     return await initializeMintMachine(provider, admin, {
-        description: COLLECTION_DESCRIPTION,
-        maxSupply: MAX_SUPPLY,
-        name: COLLECTION_NAME,
-        uri: COLLECTION_URI,
-        mutableDescription: MUTABLE_COLLECTION_DESCRIPTION,
-        mutableRoyalty: MUTABLE_ROYALTY,
-        mutableUri: MUTABLE_URI,
-        mutableTokenDescription: MUTABLE_TOKEN_DESCRIPTION,
-        mutableTokenName: MUTABLE_TOKEN_NAME,
-        mutableTokenProperties: MUTABLE_TOKEN_PROPERTIES,
-        mutableTokenUri: MUTABLE_TOKEN_URI,
-        tokensBurnableByCreator: TOKENS_BURNABLE_BY_CREATOR,
-        tokensFreezableByCreator: TOKENS_FREEZABLE_BY_CREATOR,
-        royaltyNumerator: ROYALTY_NUMERATOR,
-        royaltyDenominator: ROYALTY_DENOMINATOR,
-        tokenBaseName: TOKEN_BASE_NAME,
+        description: DEFAULT_COLLECTION_DESCRIPTION,
+        maxSupply: DEFAULT_MAX_SUPPLY,
+        name: DEFAULT_COLLECTION_NAME,
+        uri: DEFAULT_COLLECTION_URI,
+        mutableDescription: DEFAULT_MUTABLE_COLLECTION_DESCRIPTION,
+        mutableRoyalty: DEFAULT_MUTABLE_ROYALTY,
+        mutableUri: DEFAULT_MUTABLE_URI,
+        mutableTokenDescription: DEFAULT_MUTABLE_TOKEN_DESCRIPTION,
+        mutableTokenName: DEFAULT_MUTABLE_TOKEN_NAME,
+        mutableTokenProperties: DEFAULT_MUTABLE_TOKEN_PROPERTIES,
+        mutableTokenUri: DEFAULT_MUTABLE_TOKEN_URI,
+        tokensBurnableByCreator: DEFAULT_TOKENS_BURNABLE_BY_CREATOR,
+        tokensFreezableByCreator: DEFAULT_TOKENS_FREEZABLE_BY_CREATOR,
+        royaltyNumerator: DEFAULT_ROYALTY_NUMERATOR,
+        royaltyDenominator: DEFAULT_ROYALTY_DENOMINATOR,
+        tokenBaseName: DEFAULT_TOKEN_BASE_NAME,
     });
 }
 
 (async () => {
-    // const pk = new HexString('0xad6aa5ac8ed6e6bcd4636518dd9692aefcce8da8cca589eb7473e62673cb1186');
-    // const address = new HexString('0x68d15865f69e7afb89f3400576ae7aae7beb7a5560aa8784dec6cd80c23f9857');
-    // const account = new AptosAccount(pk.toUint8Array());
-
     const account = new AptosAccount();
     const address = account.address();
     prettyView({
@@ -82,14 +97,18 @@ export const defaultInitMintMachine = async (
     await defaultInitMintMachine(provider, account);
     const creatorObject = await viewCreatorObject(provider, address);
 
-    await addTokensInChunks(
+    const tokensAddedPerAdmin = await addTokensInChunks(
         provider,
         account,
         127,
         false,
         false,
         false,
+        TOKENS_TO_ADD,
+        TOKENS_ADDED_PER_ADMIN,
     );
+
+    fs.writeFileSync(TOKENS_ADDED_FILE_PATH, JSON.stringify(tokensAddedPerAdmin, null, 3));
 
     await upsertTier(provider, account, {
         tierName: "public",
@@ -97,7 +116,7 @@ export const defaultInitMintMachine = async (
         price: 1,
         startTimestamp: Math.floor(Date.now() / 1000),
         endTimestamp: Math.floor(Date.now() / 1000) + 1000000,
-        perUserLimit: MAX_PUBLIC_MINTS_PER_USER
+        perUserLimit: DEFAULT_MAX_PUBLIC_MINTS_PER_USER
     });
 
     await upsertTier(provider, account, {
@@ -106,7 +125,7 @@ export const defaultInitMintMachine = async (
         price: 0,
         startTimestamp: Math.floor(Date.now() / 1000),
         endTimestamp: Math.floor(Date.now() / 1000) + 1000000,
-        perUserLimit: MAX_WHITELIST_MINTS_PER_USER
+        perUserLimit: DEFAULT_MAX_WHITELIST_MINTS_PER_USER
     });
 
     prettyView(await viewReadyForLaunch(

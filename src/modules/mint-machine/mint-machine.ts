@@ -13,6 +13,25 @@ export const RESOURCE_ACCOUNT_ADDRESS_HEXSTRING = new HexString(RESOURCE_ACCOUNT
 export const MIGRATION_TOOL_HELPER_ADDRESS = process.env.NEXT_PUBLIC_MIGRATION_TOOL_HELPER_ADDRESS!;
 export const MIGRATION_TOOL_HELPER_ADDRESS_HEX = new HexString(MIGRATION_TOOL_HELPER_ADDRESS);
 
+export const DEFAULT_COLLECTION_DESCRIPTION = "Your collection description here!";
+export const DEFAULT_MUTABLE_COLLECTION_DESCRIPTION = false;
+export const DEFAULT_MUTABLE_ROYALTY = false;
+export const DEFAULT_MUTABLE_URI = false;
+export const DEFAULT_MUTABLE_TOKEN_DESCRIPTION = false;
+export const DEFAULT_MUTABLE_TOKEN_NAME = false;
+export const DEFAULT_MUTABLE_TOKEN_PROPERTIES = true;
+export const DEFAULT_MUTABLE_TOKEN_URI = false;
+export const DEFAULT_TOKENS_BURNABLE_BY_CREATOR = false;
+export const DEFAULT_TOKENS_FREEZABLE_BY_CREATOR = false;
+export const DEFAULT_COLLECTION_NAME = "Krazy Kangaroos";
+export const DEFAULT_TOKEN_BASE_NAME = "Krazy Kangaroo #";
+export const DEFAULT_TOKEN_BASE_URI = "https://arweave.net/";
+export const DEFAULT_COLLECTION_URI = "https://www.link-to-your-collection-image.com";
+export const DEFAULT_ROYALTY_NUMERATOR = 5;
+export const DEFAULT_ROYALTY_DENOMINATOR = 100;
+export const DEFAULT_MAX_SUPPLY = 10;
+export const DEFAULT_MAX_WHITELIST_MINTS_PER_USER = 20;
+export const DEFAULT_MAX_PUBLIC_MINTS_PER_USER = 500;
 
 // Initialization of a mint machine in the happy path move test
 
