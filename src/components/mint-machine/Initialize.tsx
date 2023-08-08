@@ -27,7 +27,8 @@ import {
     DEFAULT_MAX_WHITELIST_MINTS_PER_USER,
     DEFAULT_MAX_PUBLIC_MINTS_PER_USER,
 } from '@/modules/mint-machine/mint-machine';
-import { Types } from 'aptos';
+import { TxnBuilderTypes, Types } from 'aptos';
+import { EntryFunctionId, MoveType } from 'aptos/src/generated';
 interface InitializeMintMachinePrpos extends React.HTMLAttributes<HTMLDivElement> {
 }
 
@@ -66,7 +67,7 @@ export const Button = styled(motion.div)`
 
 export const InitializeMintMachine = (props: InitializeMintMachinePrpos) => {
 
-	const { signAndSubmitTransaction } = useWallet();
+	const { signAndSubmitBCSTransaction } = useWallet();
 
 	const [mintMachineConfig, setMintMachineConfig] = useState<InitializeMintMachineProps>({
         description: DEFAULT_COLLECTION_DESCRIPTION,
@@ -87,15 +88,22 @@ export const InitializeMintMachine = (props: InitializeMintMachinePrpos) => {
         tokenBaseName: DEFAULT_TOKEN_BASE_NAME,
 	});
 
-	const handleInitialization = useCallback((e: any) => {
+	const handleInitialization = useCallback( async(e: any) => {
 		const payload = initializeMintMachinePayload(mintMachineConfig);
 
-		console.log(payload);
-		console.log(payload as unknown as Types.TransactionPayload);
+		await signAndSubmitBCSTransaction(payload);
+
+		// const betterPayload: Types.TransactionPayload_EntryFunctionPayload = {
+		// 	type: 'entry_function_payload',
+		// 	type_arguments: payload.ty_args.map((ty_arg) => { ty_arg.toString() }),
+		// 	function: `${payload.function}`
+
+		// };
+
 
 		//await signAndSubmitTransaction(payload as Types.TransactionPayload);
 
-	}, [mintMachineConfig]);
+	}, [signAndSubmitBCSTransaction, mintMachineConfig]);
 
 
 	return (

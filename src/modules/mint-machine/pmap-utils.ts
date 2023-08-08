@@ -4,7 +4,6 @@ import {
     RESOURCE_ACCOUNT_ADDRESS_HEXSTRING,
     MIGRATION_TOOL_HELPER_ADDRESS,
     MIGRATION_TOOL_HELPER_ADDRESS_HEX,
-    submitPayloadHelper,
     stringUtilsToCanonicalAddress,
     viewCreatorObject,
     constructTypeTag
