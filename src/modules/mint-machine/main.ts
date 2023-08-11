@@ -137,7 +137,7 @@ export const defaultInitMintMachine = async (
 
     // Create each allowlist tier
     for (const tier of tierProps) {
-        printTxResponse({ txn: await upsertTier(provider, account, tier), onlyErrors: true });
+        printTxResponse({ txn: await upsertTier(provider, account, tier), onlyErrors: false });
     }
 
     const viewAllowlistTierInfoData = await Promise.all(tierProps.map(async (tier) => {

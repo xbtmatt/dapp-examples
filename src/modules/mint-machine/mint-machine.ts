@@ -142,8 +142,8 @@ export const upsertTierPayload = (props: TierInfo): TxnBuilderTypes.TransactionP
                 BCS.bcsSerializeStr(props.tierName),
                 BCS.bcsSerializeBool(props.openToPublic),
                 BCS.bcsSerializeUint64(props.price),
-                BCS.bcsSerializeUint64(props.startTimestamp.getUTCSeconds()),
-                BCS.bcsSerializeUint64(props.endTimestamp.getUTCSeconds()),
+                BCS.bcsSerializeUint64(Math.floor(props.startTimestamp.getTime() / 1000)),
+                BCS.bcsSerializeUint64(Math.floor(props.endTimestamp.getTime() / 1000)),
                 BCS.bcsSerializeUint64(props.perUserLimit),
             ]
         ),
