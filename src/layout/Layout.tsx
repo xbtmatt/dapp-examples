@@ -57,26 +57,22 @@ const GlobalStyles = createGlobalStyle`
 `;
 
 const Layout = (props: any) => {
+    const [postRender, setPostRender] = useState<boolean>(false);
 
-	const [postRender, setPostRender] = useState<boolean>(false);
+    useEffect(() => {
+        setPostRender(true);
+    }, []);
 
-	useEffect(() => {
-		setPostRender(true);
-	}, []);
-
-	return (
-		<>
-			<GlobalStyles />
-			{postRender ?
-				<AptosWalletProvider>
-					{props.children}
-				</AptosWalletProvider>
-				:
-				<>
-					{props.children}
-				</>}
-		</>
-	);
+    return (
+        <>
+            <GlobalStyles />
+            {postRender ? (
+                <AptosWalletProvider>{props.children}</AptosWalletProvider>
+            ) : (
+                <>{props.children}</>
+            )}
+        </>
+    );
 };
 
 export default Layout;

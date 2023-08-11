@@ -1,4 +1,12 @@
-import { HexString, Provider, Network, TxnBuilderTypes, AptosAccount, BCS, Types } from 'aptos';
+import {
+    HexString,
+    Provider,
+    Network,
+    TxnBuilderTypes,
+    AptosAccount,
+    BCS,
+    Types,
+} from "aptos";
 import {
     RESOURCE_ACCOUNT_ADDRESS,
     RESOURCE_ACCOUNT_ADDRESS_HEXSTRING,
@@ -6,12 +14,12 @@ import {
     MIGRATION_TOOL_HELPER_ADDRESS_HEX,
     stringUtilsToCanonicalAddress,
     viewCreatorObject,
-    constructTypeTag
-} from './mint-machine';
-import { PropertyType, PropertyValue } from './add-tokens';
+    constructTypeTag,
+} from "./mint-machine";
+import { PropertyType, PropertyValue } from "./add-tokens";
 
 export function toTypeTag(propertyType: PropertyType): TxnBuilderTypes.TypeTag {
-    switch(propertyType) {
+    switch (propertyType) {
         case PropertyType.BOOL:
             return new TxnBuilderTypes.TypeTagBool();
         case PropertyType.U8:
@@ -31,57 +39,133 @@ export function toTypeTag(propertyType: PropertyType): TxnBuilderTypes.TypeTag {
         case PropertyType.BYTE_VECTOR:
             return new TxnBuilderTypes.TypeTagVector(new TxnBuilderTypes.TypeTagU8());
         case PropertyType.STRING:
-            return new TxnBuilderTypes.TypeTagStruct(TxnBuilderTypes.StructTag.fromString('0x1::string::String'));
+            return new TxnBuilderTypes.TypeTagStruct(
+                TxnBuilderTypes.StructTag.fromString("0x1::string::String"),
+            );
         default:
             throw new Error(`Unsupported property type: ${propertyType}`);
     }
 }
 
-export function serializePropertyValue(v: PropertyValue, propertyType: PropertyType, doubleSerialize: boolean = false): Uint8Array {
-    switch(propertyType) {
+export function serializePropertyValue(
+    v: PropertyValue,
+    propertyType: PropertyType,
+    doubleSerialize: boolean = false,
+): Uint8Array {
+    switch (propertyType) {
         case PropertyType.BOOL:
-            if (typeof v !== 'boolean') { throw new Error('The given value\'s type does not match the propertyType.') }
-            return doubleSerialize ? BCS.bcsSerializeBytes(BCS.bcsSerializeBool(v)) : BCS.bcsSerializeBool(v);
+            if (typeof v !== "boolean") {
+                throw new Error(
+                    "The given value's type does not match the propertyType.",
+                );
+            }
+            return doubleSerialize
+                ? BCS.bcsSerializeBytes(BCS.bcsSerializeBool(v))
+                : BCS.bcsSerializeBool(v);
         case PropertyType.U8:
-            if (typeof v !== 'number') { throw new Error('The given value\'s type does not match the propertyType.') }
-            return doubleSerialize ? BCS.bcsSerializeBytes(BCS.bcsSerializeU8(v)) : BCS.bcsSerializeU8(v);
+            if (typeof v !== "number") {
+                throw new Error(
+                    "The given value's type does not match the propertyType.",
+                );
+            }
+            return doubleSerialize
+                ? BCS.bcsSerializeBytes(BCS.bcsSerializeU8(v))
+                : BCS.bcsSerializeU8(v);
         case PropertyType.U16:
-            if (typeof v !== 'number') { throw new Error('The given value\'s type does not match the propertyType.') }
-            return doubleSerialize ? BCS.bcsSerializeBytes(BCS.bcsSerializeU16(v)) : BCS.bcsSerializeU16(v);
+            if (typeof v !== "number") {
+                throw new Error(
+                    "The given value's type does not match the propertyType.",
+                );
+            }
+            return doubleSerialize
+                ? BCS.bcsSerializeBytes(BCS.bcsSerializeU16(v))
+                : BCS.bcsSerializeU16(v);
         case PropertyType.U32:
-            if (typeof v !== 'number') { throw new Error('The given value\'s type does not match the propertyType.') }
-            return doubleSerialize ? BCS.bcsSerializeBytes(BCS.bcsSerializeU32(v)) : BCS.bcsSerializeU32(v);
+            if (typeof v !== "number") {
+                throw new Error(
+                    "The given value's type does not match the propertyType.",
+                );
+            }
+            return doubleSerialize
+                ? BCS.bcsSerializeBytes(BCS.bcsSerializeU32(v))
+                : BCS.bcsSerializeU32(v);
         case PropertyType.U64:
-            if (typeof v !== 'number') { throw new Error('The given value\'s type does not match the propertyType.') }
-            return doubleSerialize ? BCS.bcsSerializeBytes(BCS.bcsSerializeUint64(v)) : BCS.bcsSerializeUint64(v);
+            if (typeof v !== "number") {
+                throw new Error(
+                    "The given value's type does not match the propertyType.",
+                );
+            }
+            return doubleSerialize
+                ? BCS.bcsSerializeBytes(BCS.bcsSerializeUint64(v))
+                : BCS.bcsSerializeUint64(v);
         case PropertyType.U128:
-            if (typeof v !== 'number') { throw new Error('The given value\'s type does not match the propertyType.') }
-            return doubleSerialize ? BCS.bcsSerializeBytes(BCS.bcsSerializeU128(v)) : BCS.bcsSerializeU128(v);
+            if (typeof v !== "number") {
+                throw new Error(
+                    "The given value's type does not match the propertyType.",
+                );
+            }
+            return doubleSerialize
+                ? BCS.bcsSerializeBytes(BCS.bcsSerializeU128(v))
+                : BCS.bcsSerializeU128(v);
         case PropertyType.U256:
-            if (typeof v !== 'number') { throw new Error('The given value\'s type does not match the propertyType.') }
-            return doubleSerialize ? BCS.bcsSerializeBytes(BCS.bcsSerializeU256(v)) : BCS.bcsSerializeU256(v);
+            if (typeof v !== "number") {
+                throw new Error(
+                    "The given value's type does not match the propertyType.",
+                );
+            }
+            return doubleSerialize
+                ? BCS.bcsSerializeBytes(BCS.bcsSerializeU256(v))
+                : BCS.bcsSerializeU256(v);
         case PropertyType.ADDRESS:
-            if (!(v instanceof HexString)) { throw new Error('The given value\'s type does not match the propertyType.') }
-            return doubleSerialize ? BCS.bcsSerializeBytes(BCS.bcsToBytes(TxnBuilderTypes.AccountAddress.fromHex(v))) : BCS.bcsToBytes(TxnBuilderTypes.AccountAddress.fromHex(v));
+            if (!(v instanceof HexString)) {
+                throw new Error(
+                    "The given value's type does not match the propertyType.",
+                );
+            }
+            return doubleSerialize
+                ? BCS.bcsSerializeBytes(
+                      BCS.bcsToBytes(TxnBuilderTypes.AccountAddress.fromHex(v)),
+                  )
+                : BCS.bcsToBytes(TxnBuilderTypes.AccountAddress.fromHex(v));
         case PropertyType.BYTE_VECTOR:
-            if (!(v instanceof Uint8Array)) { throw new Error('The given value\'s type does not match the propertyType.') }
-            return doubleSerialize ? BCS.bcsSerializeBytes(BCS.bcsSerializeBytes(v)) : BCS.bcsSerializeBytes(v);
+            if (!(v instanceof Uint8Array)) {
+                throw new Error(
+                    "The given value's type does not match the propertyType.",
+                );
+            }
+            return doubleSerialize
+                ? BCS.bcsSerializeBytes(BCS.bcsSerializeBytes(v))
+                : BCS.bcsSerializeBytes(v);
         case PropertyType.STRING:
-            if (typeof v !== 'string') { throw new Error('The given value\'s type does not match the propertyType.') }
-            return doubleSerialize ? BCS.bcsSerializeBytes(BCS.bcsSerializeStr(v)) : BCS.bcsSerializeStr(v);
+            if (typeof v !== "string") {
+                throw new Error(
+                    "The given value's type does not match the propertyType.",
+                );
+            }
+            return doubleSerialize
+                ? BCS.bcsSerializeBytes(BCS.bcsSerializeStr(v))
+                : BCS.bcsSerializeStr(v);
         default:
             throw new Error(`Unsupported property type: ${propertyType}`);
     }
 }
 
-export function serializeVectors(values: Array<any>, propertyTypes: Array<any> | any, doubleSerialize: boolean = false): Uint8Array {
+export function serializeVectors(
+    values: Array<any>,
+    propertyTypes: Array<any> | any,
+    doubleSerialize: boolean = false,
+): Uint8Array {
     // If there is only one type provided, we assume we can apply this type to all elements in the array
-    propertyTypes = Array.isArray(propertyTypes) ? propertyTypes : createTypedArray(values, propertyTypes);
+    propertyTypes = Array.isArray(propertyTypes)
+        ? propertyTypes
+        : createTypedArray(values, propertyTypes);
 
     // If we encounter an array, we need to recursively serialize each element.
     if (Array.isArray(values)) {
         const serializedElements: Uint8Array[] = values.map((v, i) =>
-            Array.isArray(v) ? serializeVectors(v, propertyTypes[i], doubleSerialize) : serializePropertyValue(v, propertyTypes[i], doubleSerialize)
+            Array.isArray(v)
+                ? serializeVectors(v, propertyTypes[i], doubleSerialize)
+                : serializePropertyValue(v, propertyTypes[i], doubleSerialize),
         );
 
         // Combine the serialized elements into a single Uint8Array.
@@ -96,7 +180,6 @@ export function serializeVectors(values: Array<any>, propertyTypes: Array<any> |
     }
 }
 
-
 function concatUint8Arrays(arrays: Uint8Array[]): Uint8Array {
     let totalLength = arrays.reduce((acc, val) => acc + val.length, 0);
     let result = new Uint8Array(totalLength);
@@ -108,11 +191,12 @@ function concatUint8Arrays(arrays: Uint8Array[]): Uint8Array {
     return result;
 }
 
-
-export function createTypedArray(propertyValues: Array<any>, propertyType: PropertyType): any {
+export function createTypedArray(
+    propertyValues: Array<any>,
+    propertyType: PropertyType,
+): any {
     if (Array.isArray(propertyValues)) {
-      return propertyValues.map(value => createTypedArray(value, propertyType));
+        return propertyValues.map((value) => createTypedArray(value, propertyType));
     }
     return propertyType;
-  }
-  
+}

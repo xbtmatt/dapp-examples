@@ -7,6 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "_fmt": "prettier 'src/**/*.ts' 'src/**/*.tsx'",
+    "fmt": "pnpm _fmt --write",
+    "fmt:check": "pnpm _fmt --check",
     "start:main": "ts-node -P src/modules/mint-machine/tsconfig.json src/modules/mint-machine/main.ts",
     "scripts:main": "npx ts-node -P tsconfig.scripts.json src/modules/mint-machine/main.ts"
   },
@@ -43,6 +46,7 @@
     "@types/prettyjson": "^0.0.30",
     "@types/react-modal": "^3.16.0",
     "dotenv": "^16.3.1",
+    "prettier": "^3.0.1",
     "prettyjson": "^1.2.5",
     "ts-node": "^10.9.1"
   }

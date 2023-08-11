@@ -1,4 +1,12 @@
-import { HexString, Provider, Network, TxnBuilderTypes, AptosAccount, BCS, FaucetClient } from 'aptos';
+import {
+    HexString,
+    Provider,
+    Network,
+    TxnBuilderTypes,
+    AptosAccount,
+    BCS,
+    FaucetClient,
+} from "aptos";
 import {
     RESOURCE_ACCOUNT_ADDRESS_HEXSTRING,
     addTokens,
@@ -17,14 +25,14 @@ import {
     viewTokenMetadata,
     viewTokenUris,
     viewAllowlistTierInfo,
-    RESOURCE_ACCOUNT_ADDRESS
-} from './mint-machine';
-import { formatDateToLocalString, printTxResponse, printView } from '../string-utils';
-import { AdminAddress, TokenUri, TokensAdded, addTokensInChunks } from './add-tokens';
-import fs from 'fs';
-import TokensJSON from './json/tokens.json';
-import TokensAddedJSON from './json/tokens-added.json';
-import { join } from 'path';
+    RESOURCE_ACCOUNT_ADDRESS,
+} from "./mint-machine";
+import { formatDateToLocalString, printTxErrors, printView } from "../string-utils";
+import { AdminAddress, TokenUri, TokensAdded, addTokensInChunks } from "./add-tokens";
+import fs from "fs";
+import TokensJSON from "./json/tokens.json";
+import TokensAddedJSON from "./json/tokens-added.json";
+import { join } from "path";
 import {
     DEFAULT_COLLECTION_DESCRIPTION,
     DEFAULT_MUTABLE_COLLECTION_DESCRIPTION,
@@ -44,24 +52,24 @@ import {
     DEFAULT_MAX_SUPPLY,
     DEFAULT_MAX_GOLD_TIER_MINTS_PER_USER,
     DEFAULT_MAX_PUBLIC_TIER_MINTS_PER_USER,
-} from './mint-machine';
-import { getConfig } from './config';
-import assert from 'assert';
-import { YES, getInput } from '../utils';
+} from "./mint-machine";
+import { getConfig } from "./config";
+import assert from "assert";
+import { YES, getInput } from "../utils";
 
 const DIRNAME = __dirname;
-const TOKENS_ADDED_FILE_PATH = join(DIRNAME, 'json/tokens-added.json');
-const CONFIG_YAML_PATH = join(DIRNAME, './.config.yaml');
+const TOKENS_ADDED_FILE_PATH = join(DIRNAME, "json/tokens-added.json");
+const CONFIG_YAML_PATH = join(DIRNAME, "./.config.yaml");
 
 // cast to a dictionary (Record) and delete the default value that typescript sometimes imports
 const TOKENS_TO_ADD = TokensJSON as Record<TokenUri, any>;
-if ('default' in TOKENS_TO_ADD) {
-    delete TOKENS_TO_ADD['default'];
+if ("default" in TOKENS_TO_ADD) {
+    delete TOKENS_TO_ADD["default"];
 }
 
 const TOKENS_ADDED_PER_ADMIN = TokensAddedJSON as Record<AdminAddress, TokensAdded>;
-if ('default' in TOKENS_ADDED_PER_ADMIN) {
-    delete TOKENS_ADDED_PER_ADMIN['default'];
+if ("default" in TOKENS_ADDED_PER_ADMIN) {
+    delete TOKENS_ADDED_PER_ADMIN["default"];
 }
 
 export const defaultInitMintMachine = async (
@@ -86,15 +94,17 @@ export const defaultInitMintMachine = async (
         royaltyDenominator: DEFAULT_ROYALTY_DENOMINATOR,
         tokenBaseName: DEFAULT_TOKEN_BASE_NAME,
     });
-}
+};
 
 (async () => {
-    const [mintMachineProps, tierProps] = getConfig(CONFIG_YAML_PATH);
+    const [mintMachineProps, tierProps, chunkSize] = getConfig(CONFIG_YAML_PATH);
     printView(mintMachineProps);
     printView(tierProps);
 
-    printView({ currentTime: formatDateToLocalString(new Date(Date.now()))})
-    let input = await getInput("Do these configuration options look okay to you? [y/n]\n");
+    printView({ currentTime: formatDateToLocalString(new Date(Date.now())) });
+    let input = await getInput(
+        "Do these configuration options look okay to you? [y/n]\n",
+    );
     if (!YES.includes(input.toLowerCase())) {
         return;
     }
@@ -102,7 +112,10 @@ export const defaultInitMintMachine = async (
     const account = new AptosAccount();
     const address = account.address();
     const provider = new Provider(Network.DEVNET);
-    const faucetClient = new FaucetClient(provider.aptosClient.nodeUrl, `https://faucet.${Network.DEVNET}.aptoslabs.com`);
+    const faucetClient = new FaucetClient(
+        provider.aptosClient.nodeUrl,
+        `https://faucet.${Network.DEVNET}.aptoslabs.com`,
+    );
 
     await faucetClient.fundAccount(address, 100_000_000);
 
@@ -112,82 +125,86 @@ export const defaultInitMintMachine = async (
 
     printView({
         AccountAddress: address.hex(),
-        PrivateKey: HexString.fromUint8Array(account.signingKey.secretKey).toString().slice(0, 64),
+        PrivateKey: HexString.fromUint8Array(account.signingKey.secretKey)
+            .toString()
+            .slice(0, 66),
         CreatorObject: creatorObject.toString(),
         ResourceAddress: RESOURCE_ACCOUNT_ADDRESS,
-    })
+    });
 
     const tokensAddedPerAdmin = await addTokensInChunks(
         provider,
         account,
-        127,
-        false,
-        false,
-        false,
         TOKENS_TO_ADD,
         TOKENS_ADDED_PER_ADMIN,
+        chunkSize,
+        false,
+        false,
+        false,
     );
 
-    fs.writeFileSync(TOKENS_ADDED_FILE_PATH, JSON.stringify(tokensAddedPerAdmin, null, 3));
+    fs.writeFileSync(
+        TOKENS_ADDED_FILE_PATH,
+        JSON.stringify(tokensAddedPerAdmin, null, 3),
+    );
 
     let tokenUris = await viewTokenUris(provider, account.address());
     printView(tokenUris);
-    const tokenMetadata = await viewTokenMetadata(provider, account.address(), tokenUris.slice(0, 10));
+    const tokenMetadata = await viewTokenMetadata(
+        provider,
+        account.address(),
+        tokenUris.slice(0, 10),
+    );
     // printView(tokenMetadata);
 
     // Create each allowlist tier
     for (const tier of tierProps) {
-        printTxResponse({ txn: await upsertTier(provider, account, tier), onlyErrors: false });
+        printTxErrors(await upsertTier(provider, account, tier));
     }
 
-    const viewAllowlistTierInfoData = await Promise.all(tierProps.map(async (tier) => {
-        return {
-            tier: tier.tierName,
-            info: await viewAllowlistTierInfo(
-                provider,
-                creatorObject,
-                tier.tierName,
-            )
-        }}
-    ));
+    const viewAllowlistTierInfoData = await Promise.all(
+        tierProps.map(async (tier) => {
+            return {
+                tier: tier.tierName,
+                info: await viewAllowlistTierInfo(provider, creatorObject, tier.tierName),
+            };
+        }),
+    );
 
     printView(viewAllowlistTierInfoData);
-    
-    const viewEligibleTiers = await Promise.all(tierProps.map(async (tier) => {
-        return {
-            tier: tier.tierName,
-            info: await addressEligibleForTier(
-                provider,
-                creatorObject,
-                account.address(),
-                tier.tierName,
-            ),
-        }}
-    ));
-    printView(viewEligibleTiers);
-    printView(await viewReadyForLaunch(
-        provider,
-        account.address(),
-    ));
 
-    printTxResponse({ txn: await enableMinting(provider, account) });
+    const viewEligibleTiers = await Promise.all(
+        tierProps.map(async (tier) => {
+            return {
+                tier: tier.tierName,
+                info: await addressEligibleForTier(
+                    provider,
+                    creatorObject,
+                    account.address(),
+                    tier.tierName,
+                ),
+            };
+        }),
+    );
+    printView(viewEligibleTiers);
+    printView(await viewReadyForLaunch(provider, account.address()));
+
+    printTxErrors(await enableMinting(provider, account));
     printView(await viewMintConfiguration(provider, creatorObject));
     printView(viewAllowlistTierInfoData);
-        console.log('ok4');
 
-    //mintAndViewTokens(provider, account, 250);
-    return;
+    // mintAndViewTokens(provider, account, account.address(), 250);
 
-    const { events, ...response } = (await mintMultiple(provider, account, {
-        adminAddress: account.address(),
-        amount: 10,
-    }));
-    printTxResponse({ txn: { events: [], ...response } });
+    printTxErrors(
+        await mintMultiple(provider, account, {
+            adminAddress: account.address(),
+            amount: 250,
+        }),
+    );
 
     tokenUris = await viewTokenUris(provider, account.address());
     printView(tokenUris);
-    printView(await viewTokenMetadata(provider, account.address(), tokenUris.slice(0, 10)));
-
+    printView(
+        await viewTokenMetadata(provider, account.address(), tokenUris.slice(0, 10)),
+    );
 })();
-
-
