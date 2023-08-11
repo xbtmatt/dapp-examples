@@ -4,7 +4,7 @@ import { createTypedArray, serializeVectors } from './pmap-utils';
 import { MoveResource } from 'aptos/src/generated';
 import { MoveValue } from '../types';
 import { MintConfiguration, TierInfo, TokenMetadata } from './types';
-import { prettyPrint, prettyView } from '../string-utils';
+import { printTxResponse, printView } from '../string-utils';
 import { PropertyType, PropertyValue } from './add-tokens';
 config();
 
@@ -362,6 +362,10 @@ export const addressEligibleForTier = async (
     accountAddr: HexString,
     tierName: string,
 ): Promise<Eligibility> => {
+    console.log(creatorAddr);
+    console.log(accountAddr);
+    console.log(tierName);
+
     const res = await provider.view({
         function: constructTypeTag(RESOURCE_ACCOUNT_ADDRESS_HEXSTRING, 'allowlist', 'address_eligible_for_tier'),
         type_arguments: [],
@@ -430,12 +434,12 @@ export const mintAndViewTokens = async (
     adminAddress: HexString,
     amount: number,
 ) => {
-    prettyPrint(await mintMultiple(provider, minter, {
+    printTxResponse({ txn: await mintMultiple(provider, minter, {
         adminAddress,
         amount,
-    }));
+    }) });
 
-    prettyView(
+    printView(
         await provider.indexerClient.getOwnedTokens(
             minter.address(),
         )

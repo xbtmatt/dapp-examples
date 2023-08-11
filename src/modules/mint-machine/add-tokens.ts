@@ -1,6 +1,6 @@
 import { AptosAccount, HexString, Provider, TxnBuilderTypes } from 'aptos';
 import { addTokens, viewCreatorObject, viewMintConfiguration } from './mint-machine';
-import { prettyView } from '../string-utils';
+import { printView } from '../string-utils';
 
 export enum PropertyType {
     BOOL = "bool",
@@ -195,7 +195,7 @@ export async function addTokensAndWriteToFile(
                     thisRecord[uri] = r;
                     tokensAddedPerAdmin[adminAddress][uri] = r;
                 });
-                prettyView({
+                printView({
                     version: result.version,
                     timestamp: new Date(Number(result.timestamp) / 1000),
                     success: Boolean(result.success),

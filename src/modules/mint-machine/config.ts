@@ -2,7 +2,7 @@ import { readFileSync } from 'fs';
 import { parse } from 'yaml';
 import { InitializeMintMachineProps } from './mint-machine';
 import { TierInfo } from './types';
-import { prettyView } from '../string-utils';
+import { printView } from '../string-utils';
 
 const parseYamlFile = (filePath: string): any => {
     const fileContent = readFileSync(filePath, 'utf8');

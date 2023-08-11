@@ -8,16 +8,20 @@ export const prettify = (
     spacesPerIndent: number = 3,
     noAlign: boolean = true
 ): string => {
-    obj = convertDatesInObject(obj);
-    return colors.bold.grey('------------------------------------------------------------\n') + prettyjson.render(obj, {
-        keysColor: 'grey',
+    const objCopy = JSON.parse(JSON.stringify(obj));
+    const jsonString = prettyjson.render(objCopy, {
+        keysColor: 'white',
         dashColor: 'brightWhite',
         stringColor: 'green',
         numberColor: 'blue',
         noAlign,
         defaultIndentation: spacesPerIndent,
         emptyArrayMsg: colors.bold.yellow('[]'),
-    }) + colors.bold.grey('\n------------------------------------------------------------');
+    });
+    const maxLength = findLongestLineLength(jsonString);
+    return colors.bold.magenta('\n' + '-'.repeat(maxLength) + '\n')
+         + jsonString;
+         //+ colors.bold.magenta('\n\n' + '-'.repeat(maxLength) + '\n');
 }
 
 export const stringifyResponse = (
@@ -34,12 +38,26 @@ export const stringifyResponse = (
     }
 }
 
-export const prettyPrint = (
-    t: Types.UserTransaction,
-    spacesPerIndent: number = 3,
-    colorize: boolean = true,
-) => {
-    console.log(stringifyResponse(t, spacesPerIndent, colorize));
+export type PrintTxResponseProps = {
+    txn: Types.UserTransaction,
+    spacesPerIndent?: number,
+    colorize?: boolean,
+    onlyErrors?: boolean,
+}
+
+const DefaultPrintTxResponseProps = {
+    spacesPerIndent: 3,
+    colorize: true,
+    onlyErrors: false,
+}
+
+export const printTxResponse = (props: PrintTxResponseProps) => {
+    props = { ...DefaultPrintTxResponseProps, ...props };
+    if (!props.txn.success) {
+        error(props.txn.vm_status);
+    }
+    if (props.onlyErrors) return;
+    console.log(stringifyResponse(props.txn, props.spacesPerIndent, props.colorize));
     console.log();
 }
 
@@ -55,7 +73,7 @@ export const stringifyView = (
     }
 }
 
-export const prettyView = (
+export const printView = (
     v: any,
     spacesPerIndent: number = 3,
     colorize: boolean = true,
@@ -87,4 +105,22 @@ function convertDatesInObject(obj: any): any {
         }
     }
     return obj;
+}
+
+const findLongestLineLength = (input: string): number => {
+    return Math.max(...input.split('\n').map(line => getVisibleLength(line)));
+}
+
+const getVisibleLength = (str: string): number => {
+    // This regex matches the general pattern for ANSI escape sequences.
+    const ansiEscapeRegex = /\u001b\[\d{1,3}m/g;
+
+    // Strip all color codes from the string
+    const visibleString = str.replace(ansiEscapeRegex, '');
+
+    return visibleString.length;
+};
+
+export const error = (s: any) => {
+    console.error(`[${colors.bold.red("ERROR")}]: ${colors.white(s)}`);
 }

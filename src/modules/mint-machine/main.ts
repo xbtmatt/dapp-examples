@@ -19,7 +19,7 @@ import {
     viewAllowlistTierInfo,
     RESOURCE_ACCOUNT_ADDRESS
 } from './mint-machine';
-import { formatDateToLocalString, prettyPrint, prettyView } from '../string-utils';
+import { formatDateToLocalString, printTxResponse, printView } from '../string-utils';
 import { AdminAddress, TokenUri, TokensAdded, addTokensInChunks } from './add-tokens';
 import fs from 'fs';
 import TokensJSON from './json/tokens.json';
@@ -90,10 +90,10 @@ export const defaultInitMintMachine = async (
 
 (async () => {
     const [mintMachineProps, tierProps] = getConfig(CONFIG_YAML_PATH);
-    prettyView(mintMachineProps);
-    prettyView(tierProps);
+    printView(mintMachineProps);
+    printView(tierProps);
 
-    prettyView({ currentTime: formatDateToLocalString(new Date(Date.now()))})
+    printView({ currentTime: formatDateToLocalString(new Date(Date.now()))})
     let input = await getInput("Do these configuration options look okay to you? [y/n]\n");
     if (!YES.includes(input.toLowerCase())) {
         return;
@@ -110,7 +110,7 @@ export const defaultInitMintMachine = async (
     await initializeMintMachine(provider, account, mintMachineProps);
     const creatorObject = await viewCreatorObject(provider, address);
 
-    prettyView({
+    printView({
         AccountAddress: address.hex(),
         PrivateKey: HexString.fromUint8Array(account.signingKey.secretKey).toString().slice(0, 64),
         CreatorObject: creatorObject.toString(),
@@ -131,20 +131,14 @@ export const defaultInitMintMachine = async (
     fs.writeFileSync(TOKENS_ADDED_FILE_PATH, JSON.stringify(tokensAddedPerAdmin, null, 3));
 
     let tokenUris = await viewTokenUris(provider, account.address());
-    prettyView(tokenUris);
+    printView(tokenUris);
     const tokenMetadata = await viewTokenMetadata(provider, account.address(), tokenUris.slice(0, 10));
-    // prettyView(tokenMetadata);
+    // printView(tokenMetadata);
 
     // Create each allowlist tier
     for (const tier of tierProps) {
-        console.log(tier);
-        await upsertTier(provider, account, tier);
+        printTxResponse({ txn: await upsertTier(provider, account, tier), onlyErrors: true });
     }
-
-    prettyView(await viewReadyForLaunch(
-        provider,
-        account.address(),
-    ));
 
     const viewAllowlistTierInfoData = await Promise.all(tierProps.map(async (tier) => {
         return {
@@ -157,8 +151,8 @@ export const defaultInitMintMachine = async (
         }}
     ));
 
-    prettyView(viewAllowlistTierInfoData);
-
+    printView(viewAllowlistTierInfoData);
+    
     const viewEligibleTiers = await Promise.all(tierProps.map(async (tier) => {
         return {
             tier: tier.tierName,
@@ -170,12 +164,15 @@ export const defaultInitMintMachine = async (
             ),
         }}
     ));
+    printView(viewEligibleTiers);
+    printView(await viewReadyForLaunch(
+        provider,
+        account.address(),
+    ));
 
-    prettyView(viewEligibleTiers);
-
-    prettyPrint(await enableMinting(provider, account));
-    prettyView(await viewMintConfiguration(provider, creatorObject));
-    prettyView(viewAllowlistTierInfoData);
+    printTxResponse({ txn: await enableMinting(provider, account) });
+    printView(await viewMintConfiguration(provider, creatorObject));
+    printView(viewAllowlistTierInfoData);
         console.log('ok4');
 
     //mintAndViewTokens(provider, account, 250);
@@ -185,11 +182,11 @@ export const defaultInitMintMachine = async (
         adminAddress: account.address(),
         amount: 10,
     }));
-    prettyPrint({ events: [], ...response });
+    printTxResponse({ txn: { events: [], ...response } });
 
     tokenUris = await viewTokenUris(provider, account.address());
-    prettyView(tokenUris);
-    prettyView(await viewTokenMetadata(provider, account.address(), tokenUris.slice(0, 10)));
+    printView(tokenUris);
+    printView(await viewTokenMetadata(provider, account.address(), tokenUris.slice(0, 10)));
 
 })();
 
