@@ -18,11 +18,11 @@ function MyApp({ Component, pageProps }: AppPropsWithLayout) {
     <Layout style={{ alignText: 'center', }}>
         <Head>
           <meta name="viewport" content="width=device-width, initial-scale=1" />
-          <meta property="og:title" content="Aptos Toad Overload" />
-          <meta property="og:url" content="https://aptoads.io" />
-          <meta property="og:image" content="https://aptoads.nyc3.digitaloceanspaces.com/images/aptoads.png" />
-          <link rel="shortcut icon" href="https://aptoads.nyc3.digitaloceanspaces.com/images/aptoads.ico" />
-          <title>Aptos Toad Overload</title>
+          <meta property="og:title" content="Mint Machine" />
+          <meta property="og:url" content="https://tobedeterminedasdfasdfasdfsadfasdfasdfasdfsadf.com" />
+          <meta property="og:image" content="https://dapps.nyc3.cdn.digitaloceanspaces.com/mint-machine/icon.png" />
+          <link rel="shortcut icon" href="https://dapps.nyc3.cdn.digitaloceanspaces.com/mint-machine/icon.ico" />
+          <title>Mint Machine</title>
         </Head>
         <Component {...pageProps} />
     </Layout>

@@ -3,7 +3,7 @@ import { config } from 'dotenv';
 import { createTypedArray, serializeVectors } from './pmap-utils';
 import { MoveResource } from 'aptos/src/generated';
 import { MoveValue } from '../types';
-import { MintConfiguration } from './types';
+import { MintConfiguration, TierInfo, TokenMetadata } from './types';
 import { prettyPrint, prettyView } from '../string-utils';
 import { PropertyType, PropertyValue } from './add-tokens';
 config();
@@ -30,8 +30,8 @@ export const DEFAULT_COLLECTION_URI = "https://www.link-to-your-collection-image
 export const DEFAULT_ROYALTY_NUMERATOR = 5;
 export const DEFAULT_ROYALTY_DENOMINATOR = 100;
 export const DEFAULT_MAX_SUPPLY = 10;
-export const DEFAULT_MAX_WHITELIST_MINTS_PER_USER = 20;
-export const DEFAULT_MAX_PUBLIC_MINTS_PER_USER = 500;
+export const DEFAULT_MAX_GOLD_TIER_MINTS_PER_USER = 20;
+export const DEFAULT_MAX_PUBLIC_TIER_MINTS_PER_USER = 500;
 
 // Initialization of a mint machine in the happy path move test
 
@@ -53,8 +53,8 @@ export const DEFAULT_MAX_PUBLIC_MINTS_PER_USER = 500;
 // mint_machine::enable_minting(admin);
 
 // let minter_1_addr = signer::address_of(minter_1);
-// let whitelist_addr = mint_machine::get_creator_addr(admin_addr);
-// whitelist::assert_eligible_for_tier(whitelist_addr, minter_1_addr, str(b"public"));
+// let allowlist_addr = mint_machine::get_creator_addr(admin_addr);
+// allowlist::assert_eligible_for_tier(allowlist_addr, minter_1_addr, str(b"public"));
 
 
 export type SubmitPayloadHelperProps = {
@@ -131,17 +131,8 @@ export const initializeMintMachine = async (
     });
 }
 
-export type UpsetTierProps = {
-    tierName: string,
-    openToPublic: boolean,
-    price: number,
-    startTimestamp: number,
-    endTimestamp: number,
-    perUserLimit: number,
-}
-
 // For the wallet adapter/dapp
-export const upsertTierPayload = (props: UpsetTierProps): TxnBuilderTypes.TransactionPayloadEntryFunction => {
+export const upsertTierPayload = (props: TierInfo): TxnBuilderTypes.TransactionPayloadEntryFunction => {
     return new TxnBuilderTypes.TransactionPayloadEntryFunction(
         TxnBuilderTypes.EntryFunction.natural(
             `${RESOURCE_ACCOUNT_ADDRESS}::mint_machine`,
@@ -151,8 +142,8 @@ export const upsertTierPayload = (props: UpsetTierProps): TxnBuilderTypes.Transa
                 BCS.bcsSerializeStr(props.tierName),
                 BCS.bcsSerializeBool(props.openToPublic),
                 BCS.bcsSerializeUint64(props.price),
-                BCS.bcsSerializeUint64(props.startTimestamp),
-                BCS.bcsSerializeUint64(props.endTimestamp),
+                BCS.bcsSerializeUint64(props.startTimestamp.getUTCSeconds()),
+                BCS.bcsSerializeUint64(props.endTimestamp.getUTCSeconds()),
                 BCS.bcsSerializeUint64(props.perUserLimit),
             ]
         ),
@@ -164,7 +155,7 @@ export const upsertTierPayload = (props: UpsetTierProps): TxnBuilderTypes.Transa
 export const upsertTier = async (
     provider: Provider,
     admin: AptosAccount,
-    props: UpsetTierProps
+    props: TierInfo
 ): Promise<Types.UserTransaction> => {
     return await submitPayloadHelper({
         provider,
@@ -372,7 +363,7 @@ export const addressEligibleForTier = async (
     tierName: string,
 ): Promise<Eligibility> => {
     const res = await provider.view({
-        function: constructTypeTag(RESOURCE_ACCOUNT_ADDRESS_HEXSTRING, 'whitelist', 'address_eligible_for_tier'),
+        function: constructTypeTag(RESOURCE_ACCOUNT_ADDRESS_HEXSTRING, 'allowlist', 'address_eligible_for_tier'),
         type_arguments: [],
         arguments: [creatorAddr.toString(), accountAddr.toString(), tierName],
     }) as Array<any>;
@@ -386,37 +377,30 @@ export const addressEligibleForTier = async (
     }
 }
 
-export type TierInfo = {
-    openToPublic: boolean,
-    price: number,
-    startTime: number,
-    endTime: number,
-    perUserLimit: number,
-}
-
-export const viewWhitelistTierInfo = async (
+export const viewAllowlistTierInfo = async (
     provider: Provider,
-    creatorAddr: HexString,
+    creatorObjectAddress: HexString,
     tierName: string,
 ): Promise<TierInfo> => {
     const res = await provider.view({
-        function: constructTypeTag(RESOURCE_ACCOUNT_ADDRESS_HEXSTRING, 'whitelist', 'tier_info'),
+        function: constructTypeTag(RESOURCE_ACCOUNT_ADDRESS_HEXSTRING, 'allowlist', 'tier_info'),
         type_arguments: [],
-        arguments: [creatorAddr.toString(), tierName],
+        arguments: [creatorObjectAddress.toString(), tierName],
     }) as Array<boolean | number>;
 
     return {
+        tierName,
         openToPublic: Boolean(res[0]),
         price: Number(res[1]),
-        startTime: Number(res[2]),
-        endTime: Number(res[3]),
+        startTimestamp: new Date(Number(res[2])),
+        endTimestamp: new Date(Number(res[3])),
         perUserLimit: Number(res[4]),
     }
 }
 
 export type ReadyForLaunch = {
     mintConfigExists: boolean,
-    whitelistExists: boolean,
+    allowlistExists: boolean,
     hasValidTier: boolean,
     collectionExists: boolean,
     metadataComplete: boolean,
@@ -424,16 +408,16 @@ export type ReadyForLaunch = {
 
 export const viewReadyForLaunch = async (
     provider: Provider,
-    adminAddr: HexString,
+    adminAddress: HexString,
 ): Promise<ReadyForLaunch> => {
     const res = (await provider.view({
         function: constructTypeTag(RESOURCE_ACCOUNT_ADDRESS_HEXSTRING, 'mint_machine', 'ready_for_launch'),
         type_arguments: [],
-        arguments: [adminAddr.toString()],
+        arguments: [adminAddress.toString()],
     }))[0] as any;
     return {
         mintConfigExists: Boolean(res.mint_config_exists),
-        whitelistExists: Boolean(res.whitelist_exists),
+        allowlistExists: Boolean(res.allowlist_exists),
         hasValidTier: Boolean(res.has_valid_tier),
         collectionExists: Boolean(res.collection_exists),
         metadataComplete: Boolean(res.metadata_complete),
@@ -456,4 +440,29 @@ export const mintAndViewTokens = async (
             minter.address(),
         )
     )
+}
+
+export const viewTokenUris = async (
+    provider: Provider,
+    adminAddress: HexString,
+): Promise<Array<string>> => {
+    const res = (await provider.view({
+        function: constructTypeTag(RESOURCE_ACCOUNT_ADDRESS_HEXSTRING, 'mint_machine', 'view_token_uris'),
+        type_arguments: [],
+        arguments: [adminAddress.toString()],
+    }))[0] as any;
+    return res;
+}
+
+export const viewTokenMetadata = async (
+    provider: Provider,
+    adminAddress: HexString,
+    tokenUris: Array<string>,
+): Promise<Array<TokenMetadata>> => {
+    const res = (await provider.view({
+        function: constructTypeTag(RESOURCE_ACCOUNT_ADDRESS_HEXSTRING, 'mint_machine', 'view_token_metadatas'),
+        type_arguments: [],
+        arguments: [adminAddress.toString(), tokenUris],
+    }))[0] as any;
+    return res;
 }

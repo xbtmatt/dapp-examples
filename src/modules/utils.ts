@@ -1,6 +1,7 @@
 import { NetworkName } from "@aptos-labs/wallet-adapter-react";
 import { AptosClient, HexString, MaybeHexString } from "aptos"
 import { MoveResource } from "aptos/src/generated";
+import * as readline from 'readline';
 
 export function getNetworkName(): NetworkName {
 	if (!process.env.NEXT_PUBLIC_NODE_URL!.includes(process.env.NEXT_PUBLIC_NETWORK_NAME!)) {
@@ -186,3 +187,19 @@ export async function awaitTransaction(txHash: MaybeHexString, tries?: number, c
 export const printJSON = (x: any) => {
     console.log(JSON.stringify(x, null, 3));
 }
+
+export function getInput(question: string): Promise<string> {
+    const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout
+    });
+
+    return new Promise<string>((resolve) => {
+        rl.question(question, (answer) => {
+            resolve(answer);
+            rl.close();
+        });
+    });
+}
+
+export const YES = ["y", "yes"];

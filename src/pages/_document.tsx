@@ -37,7 +37,7 @@ export default class MyDocument extends Document {
     return (
       <Html>
         <Head>
-          <link rel="icon" type="image/x-icon" href="https://aptoads.nyc3.digitaloceanspaces.com/images/aptoads.ico" />
+          <link rel="icon" type="image/x-icon" href="https://dapps.nyc3.cdn.digitaloceanspaces.com/mint-machine/icon.ico" />
         </Head>
         <body>
           <Main />

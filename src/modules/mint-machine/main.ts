@@ -14,9 +14,12 @@ import {
     viewCreatorObject,
     viewMintConfiguration,
     viewReadyForLaunch,
-    viewWhitelistTierInfo
+    viewTokenMetadata,
+    viewTokenUris,
+    viewAllowlistTierInfo,
+    RESOURCE_ACCOUNT_ADDRESS
 } from './mint-machine';
-import { prettyPrint, prettyView } from '../string-utils';
+import { formatDateToLocalString, prettyPrint, prettyView } from '../string-utils';
 import { AdminAddress, TokenUri, TokensAdded, addTokensInChunks } from './add-tokens';
 import fs from 'fs';
 import TokensJSON from './json/tokens.json';
@@ -39,13 +42,16 @@ import {
     DEFAULT_ROYALTY_NUMERATOR,
     DEFAULT_ROYALTY_DENOMINATOR,
     DEFAULT_MAX_SUPPLY,
-    DEFAULT_MAX_WHITELIST_MINTS_PER_USER,
-    DEFAULT_MAX_PUBLIC_MINTS_PER_USER,
+    DEFAULT_MAX_GOLD_TIER_MINTS_PER_USER,
+    DEFAULT_MAX_PUBLIC_TIER_MINTS_PER_USER,
 } from './mint-machine';
+import { getConfig } from './config';
+import assert from 'assert';
+import { YES, getInput } from '../utils';
 
 const DIRNAME = __dirname;
 const TOKENS_ADDED_FILE_PATH = join(DIRNAME, 'json/tokens-added.json');
-
+const CONFIG_YAML_PATH = join(DIRNAME, './.config.yaml');
 
 // cast to a dictionary (Record) and delete the default value that typescript sometimes imports
 const TOKENS_TO_ADD = TokensJSON as Record<TokenUri, any>;
@@ -83,19 +89,33 @@ export const defaultInitMintMachine = async (
 }
 
 (async () => {
+    const [mintMachineProps, tierProps] = getConfig(CONFIG_YAML_PATH);
+    prettyView(mintMachineProps);
+    prettyView(tierProps);
+
+    prettyView({ currentTime: formatDateToLocalString(new Date(Date.now()))})
+    let input = await getInput("Do these configuration options look okay to you? [y/n]\n");
+    if (!YES.includes(input.toLowerCase())) {
+        return;
+    }
+
     const account = new AptosAccount();
     const address = account.address();
-    prettyView({
-        address: address.hex(),
-        pk: HexString.fromUint8Array(account.signingKey.secretKey),
-    })
     const provider = new Provider(Network.DEVNET);
     const faucetClient = new FaucetClient(provider.aptosClient.nodeUrl, `https://faucet.${Network.DEVNET}.aptoslabs.com`);
 
     await faucetClient.fundAccount(address, 100_000_000);
 
-    await defaultInitMintMachine(provider, account);
+    // await defaultInitMintMachine(provider, account);
+    await initializeMintMachine(provider, account, mintMachineProps);
     const creatorObject = await viewCreatorObject(provider, address);
+
+    prettyView({
+        AccountAddress: address.hex(),
+        PrivateKey: HexString.fromUint8Array(account.signingKey.secretKey).toString().slice(0, 64),
+        CreatorObject: creatorObject.toString(),
+        ResourceAddress: RESOURCE_ACCOUNT_ADDRESS,
+    })
 
     const tokensAddedPerAdmin = await addTokensInChunks(
         provider,
@@ -110,51 +130,66 @@ export const defaultInitMintMachine = async (
 
     fs.writeFileSync(TOKENS_ADDED_FILE_PATH, JSON.stringify(tokensAddedPerAdmin, null, 3));
 
-    await upsertTier(provider, account, {
-        tierName: "public",
-        openToPublic: true,
-        price: 1,
-        startTimestamp: Math.floor(Date.now() / 1000),
-        endTimestamp: Math.floor(Date.now() / 1000) + 1000000,
-        perUserLimit: DEFAULT_MAX_PUBLIC_MINTS_PER_USER
-    });
+    let tokenUris = await viewTokenUris(provider, account.address());
+    prettyView(tokenUris);
+    const tokenMetadata = await viewTokenMetadata(provider, account.address(), tokenUris.slice(0, 10));
+    // prettyView(tokenMetadata);
 
-    await upsertTier(provider, account, {
-        tierName: "whitelist",
-        openToPublic: true,
-        price: 0,
-        startTimestamp: Math.floor(Date.now() / 1000),
-        endTimestamp: Math.floor(Date.now() / 1000) + 1000000,
-        perUserLimit: DEFAULT_MAX_WHITELIST_MINTS_PER_USER
-    });
+    // Create each allowlist tier
+    for (const tier of tierProps) {
+        console.log(tier);
+        await upsertTier(provider, account, tier);
+    }
 
     prettyView(await viewReadyForLaunch(
         provider,
         account.address(),
     ));
 
-    const viewWhitelistTierInfoData =
-        await viewWhitelistTierInfo(
-            provider,
-            creatorObject,
-            "public",
-        );
-    prettyView(await addressEligibleForTier(
-        provider,
-        creatorObject,
-        account.address(),
-        "public",
+    const viewAllowlistTierInfoData = await Promise.all(tierProps.map(async (tier) => {
+        return {
+            tier: tier.tierName,
+            info: await viewAllowlistTierInfo(
+                provider,
+                creatorObject,
+                tier.tierName,
+            )
+        }}
     ));
-    prettyView(await enableMinting(provider, account));
+
+    prettyView(viewAllowlistTierInfoData);
+
+    const viewEligibleTiers = await Promise.all(tierProps.map(async (tier) => {
+        return {
+            tier: tier.tierName,
+            info: await addressEligibleForTier(
+                provider,
+                creatorObject,
+                account.address(),
+                tier.tierName,
+            ),
+        }}
+    ));
+
+    prettyView(viewEligibleTiers);
+
+    prettyPrint(await enableMinting(provider, account));
     prettyView(await viewMintConfiguration(provider, creatorObject));
-    prettyView(viewWhitelistTierInfoData);
+    prettyView(viewAllowlistTierInfoData);
+        console.log('ok4');
 
     //mintAndViewTokens(provider, account, 250);
+    return;
+
     const { events, ...response } = (await mintMultiple(provider, account, {
         adminAddress: account.address(),
         amount: 10,
     }));
     prettyPrint({ events: [], ...response });
+
+    tokenUris = await viewTokenUris(provider, account.address());
+    prettyView(tokenUris);
+    prettyView(await viewTokenMetadata(provider, account.address(), tokenUris.slice(0, 10)));
 
 })();
 

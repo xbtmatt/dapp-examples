@@ -1,0 +1,32 @@
+MintConfiguration:
+  description: "Sample Description"
+  maxSupply: 10
+  name: "Sample Name"
+  uri: "http://sample-uri.com"
+  mutability:
+    description: true
+    royalty: false
+    uri: true
+    tokenDescription: true
+    tokenName: false
+    tokenProperties: true
+    tokenUri: true
+  tokensBurnableByCreator: true
+  tokensFreezableByCreator: false
+  royaltyNumerator: 5
+  royaltyDenominator: 100
+  tokenBaseName: "Token #"
+
+Tiers:
+  - tierName: "Gold"
+    openToPublic: false
+    price: 1
+    startTimestamp: "Aug 10 2023 7:30:00 PM PDT"
+    endTimestamp: "Aug 10 2023 7:40:00 PM PDT"
+    perUserLimit: 2
+  - tierName: "Silver"
+    openToPublic: true
+    price: 3
+    startTimestamp: 1354252431
+    endTimestamp: "Aug 10 2023 7:45:00 PM PDT"
+    perUserLimit: 10

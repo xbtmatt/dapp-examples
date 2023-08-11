@@ -8,7 +8,8 @@ export const prettify = (
     spacesPerIndent: number = 3,
     noAlign: boolean = true
 ): string => {
-    return colors.bold.grey('{\n') + prettyjson.render(obj, {
+    obj = convertDatesInObject(obj);
+    return colors.bold.grey('------------------------------------------------------------\n') + prettyjson.render(obj, {
         keysColor: 'grey',
         dashColor: 'brightWhite',
         stringColor: 'green',
@@ -16,7 +17,7 @@ export const prettify = (
         noAlign,
         defaultIndentation: spacesPerIndent,
         emptyArrayMsg: colors.bold.yellow('[]'),
-    }) + colors.bold.grey('\n}');
+    }) + colors.bold.grey('\n------------------------------------------------------------');
 }
 
 export const stringifyResponse = (
@@ -61,4 +62,29 @@ export const prettyView = (
 ) => {
     console.log(stringifyView(v, spacesPerIndent, colorize));
     console.log();
+}
+
+export function formatDateToLocalString(date: Date): string {
+    const offset = -date.getTimezoneOffset();
+    const sign = offset >= 0 ? '+' : '-';
+    const hours = Math.abs(Math.floor(offset / 60));
+    const minutes = Math.abs(offset % 60);
+    const timezone = `GMT ${sign}${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    
+    // Example: "Aug 10, 2023, 7:40:13 PM GMT -07:00"
+    return `${date.toLocaleString('default', { month: 'short' })} ${date.getDate()}, ${date.getFullYear()}, ${date.toLocaleTimeString()} ${timezone}`;
+}
+
+function convertDatesInObject(obj: any): any {
+    for (let key in obj) {
+        if (obj.hasOwnProperty(key)) {
+            if (obj[key] instanceof Date) {
+                obj[key] = formatDateToLocalString(obj[key]);
+            } else if (typeof obj[key] === 'object' && obj[key] !== null) {
+                // Recursively convert nested objects
+                convertDatesInObject(obj[key]);
+            }
+        }
+    }
+    return obj;
 }

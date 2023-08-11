@@ -52,3 +52,19 @@ export type MintConfiguration = {
     token_uris: SmartVector<string>,
     metadata_table: SmartTable,
 }
+
+export type TokenMetadata = {
+    description: Array<string>,
+    property_keys: Array<String>,
+    property_values: Array<Array<number>>,
+    property_types: Array<String>,
+}
+
+export type TierInfo = {
+    tierName: string,
+    openToPublic: boolean,
+    price: number,
+    startTimestamp: Date,
+    endTimestamp: Date,
+    perUserLimit: number,
+}
