@@ -10,8 +10,6 @@ import {
 import {
     RESOURCE_ACCOUNT_ADDRESS,
     RESOURCE_ACCOUNT_ADDRESS_HEXSTRING,
-    MIGRATION_TOOL_HELPER_ADDRESS,
-    MIGRATION_TOOL_HELPER_ADDRESS_HEX,
     stringUtilsToCanonicalAddress,
     viewCreatorObject,
     constructTypeTag,

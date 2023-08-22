@@ -11,7 +11,8 @@
     "fmt": "pnpm _fmt --write",
     "fmt:check": "pnpm _fmt --check",
     "start:main": "ts-node -P src/modules/mint-machine/tsconfig.json src/modules/mint-machine/main.ts",
-    "scripts:main": "npx ts-node -P tsconfig.scripts.json src/modules/mint-machine/main.ts"
+    "scripts:main": "npx ts-node -P tsconfig.scripts.json src/modules/mint-machine/main.ts",
+    "scripts:test": "npx ts-node -P tsconfig.scripts.json src/modules/mint-machine/test.ts"
   },
   "dependencies": {
     "@aptos-labs/wallet-adapter-react": "^1.3.1",
@@ -26,7 +27,7 @@
     "@types/react": "18.2.15",
     "@types/react-dom": "18.2.7",
     "@welldone-studio/aptos-wallet-adapter": "^0.1.4",
-    "aptos": "^1.13.2",
+    "aptos": "^1.18.0",
     "eslint": "8.45.0",
     "eslint-config-next": "13.4.10",
     "fewcha-plugin-wallet-adapter": "^0.1.2",

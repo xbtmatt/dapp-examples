@@ -1,6 +1,6 @@
 MintConfiguration:
   description: "Sample Description"
-  maxSupply: 10000
+  maxSupply: 1000
   name: "Sample Name"
   uri: "http://sample-uri.com"
   mutability:
@@ -21,14 +21,14 @@ Tiers:
   - tierName: "Gold"
     openToPublic: false
     price: 0
-    startTimestamp: "Aug 10 2023 7:30:00 PM PDT"
-    endTimestamp: "Aug 10 2023 10:31:00 PM PDT"
+    startTimestamp: "Aug 11 2023 7:30:00 PM PDT"
+    endTimestamp: "Aug 11 2023 10:31:00 PM PDT"
     perUserLimit: 2
   - tierName: "Silver"
     openToPublic: true
     price: 0
-    startTimestamp: "Aug 10 2023 7:40:00 PM PDT"
-    endTimestamp: "Aug 10 2023 10:31:00 PM PDT"
-    perUserLimit: 10000
+    startTimestamp: "Aug 11 2023 7:40:00 PM PDT"
+    endTimestamp: "Aug 11 2023 10:31:00 PM PDT"
+    perUserLimit: 1000
 
-ChunkSize: 100
+ChunkSize: 150

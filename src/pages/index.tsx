@@ -11,6 +11,7 @@ import OnRender from "@/components/utils/OnRender";
 import { publishPayloadWithPackageManager } from "@/modules/package-manager/publish-package";
 import EntryFunctionButton from "@/components/buttons/EntryFunctionButton";
 import MintMachineGuide from "@/components/mint-machine/Guide";
+import SponsorTransaction from "@/components/fee-payer/Sponsor";
 
 const IndexPage: NextPage = () => {
     const {
@@ -35,6 +36,7 @@ const IndexPage: NextPage = () => {
                 handleClick={() => {}}
             ></EntryFunctionButton>
             <MintMachineGuide />
+            <SponsorTransaction/>
         </OnRender>
     );
 };
