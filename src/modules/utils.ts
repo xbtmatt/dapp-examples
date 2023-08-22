@@ -1,7 +1,26 @@
+import { NetworkName } from "@aptos-labs/wallet-adapter-react";
 import { AptosAccount, BCS, Provider, TxnBuilderTypes, Types } from "aptos";
 import { AptosClient, HexString, MaybeHexString } from "aptos";
 import { MoveResource } from "aptos/src/generated";
 import * as readline from "readline";
+
+export function getNetworkName(): NetworkName {
+    if (
+        !process.env.NEXT_PUBLIC_NODE_URL!.includes(process.env.NEXT_PUBLIC_NETWORK_NAME!)
+    ) {
+        throw "NODE_URL does not match NETWORK_NAME";
+    }
+    switch (process.env.NEXT_PUBLIC_NETWORK_NAME!) {
+        case "mainnet":
+            return NetworkName.Mainnet;
+        case "testnet":
+            return NetworkName.Testnet;
+        case "devnet":
+            return NetworkName.Devnet;
+        default:
+            return NetworkName.Testnet;
+    }
+}
 
 export function intersection<T>(a: Array<T>, b: Array<T>): Array<T> {
   const B = new Set(b);
@@ -152,17 +171,18 @@ export const printJSON = (x: any) => {
 };
 
 export function getInput(question: string): Promise<string> {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
+//   const rl = readline.createInterface({
+//     input: process.stdin,
+//     output: process.stdout,
+//   });
 
-  return new Promise<string>((resolve) => {
-    rl.question(question, (answer) => {
-      resolve(answer);
-      rl.close();
-    });
-  });
+//   return new Promise<string>((resolve) => {
+//     rl.question(question, (answer) => {
+//       resolve(answer);
+//       rl.close();
+//     });
+//   });
+return new Promise<string>( () =>"asdf");
 }
 
 export const YES = ["y", "yes"];

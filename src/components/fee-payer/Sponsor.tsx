@@ -11,10 +11,9 @@ import { create } from 'domain';
 interface SponsorTransactionProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
-const toAddress = TxnBuilderTypes.AccountAddress.fromHex("");
+const toAddress = TxnBuilderTypes.AccountAddress.fromHex("0xe7702b9e5d8542bf7e53654364b5c676228a85d0d376889eea43daa5397119aa");
 
-const petraccount = new AptosAccount(HexString.ensure('').toUint8Array()); 
-console.log(petraccount.address());
+const petraccount = new AptosAccount(); // normally have priv key here
 
 const feePayerAccountAddress = TxnBuilderTypes.AccountAddress.fromHex(petraccount.address())
 
